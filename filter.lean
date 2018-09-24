@@ -87,7 +87,7 @@ instance : complete_lattice (filter α) :=
     , inter_sets := λ X Y ⟨XA, hXA, XB, hXB, iX⟩ ⟨YA, hYA, YB, hYB, iY⟩,
         ⟨XA ∩ YA, inter_sets _ hXA hYA, XB ∩ YB, inter_sets _ hXB hYB
         ,   calc (XA ∩ YA) ∩ (XB ∩ YB) = (XA ∩ XB) ∩ (YA ∩ YB) : by ac_refl
-                                ...   ⊆ X ∩ Y                 : subset.inter_subset_inter iX iY
+                                 ...   ⊆ X ∩ Y                 : subset.inter_subset_inter iX iY
         ⟩
     }
 , π₁ := λ ℱ 𝒢 X h, ⟨X, h, univ, univ_sets _ ,λ x ⟨a,b⟩, a⟩
@@ -118,15 +118,13 @@ instance : complete_lattice (filter α) :=
 
 variables {β : Type u}
 
-def map (m : α → β) (𝒜 : filter α) : filter β :=
-{ sets := {S | {x | m x ∈ S} ∈ 𝒜}
-, univ_sets := 𝒜.univ_sets
-, sets_of_superset := λ X Y h₁ ss, 𝒜.sets_of_superset h₁ (λ x h₂, ss h₂)
-, inter_sets := λ X Y h₁ h₂, 𝒜.inter_sets h₁ h₂
-}
-
-instance : functor (filter) := {
-    map := λ α β m 𝒜, map m 𝒜
+instance : functor (filter) := 
+{ map := λ α β m 𝒜, 
+    { sets := {S | {x | m x ∈ S} ∈ 𝒜}
+    , univ_sets := 𝒜.univ_sets
+    , sets_of_superset := λ X Y h₁ ss, 𝒜.sets_of_superset h₁ (λ x h₂, ss h₂)
+    , inter_sets := λ X Y h₁ h₂, 𝒜.inter_sets h₁ h₂
+    }
 }
 
 instance : is_lawful_functor (filter) := 
