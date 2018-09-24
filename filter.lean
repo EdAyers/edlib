@@ -113,7 +113,6 @@ instance : complete_lattice (filter α) :=
 , π := λ ℱs ℱ h₁ X h₂, free_gen.basic $ ⟨ℱ, h₁, h₂⟩
 , u_Meet := λ ℱs 𝒢 h₁, free.is_galois.1 (λ A ⟨ℱ,h₄,h₅⟩, h₁ ℱ h₄ h₅)
 
-, ..filter.partial_order
 }
 
 variables {β : Type u}
@@ -133,7 +132,7 @@ instance : is_lawful_functor (filter) :=
 }
 
 /-- An ultrafilter is a minimal filter. Adding any more sets will cause it to be the universe. -/
-def ultrafilter := {ℱ : filter α // is_minimal ℱ}
+def ultrafilter := {ℱ : filter α // ∀ 𝒢 : filter α,  𝒢 < ℱ → 𝒢 = ⊥}
 
 def tendsto {β : Type u} (f : α → β) (𝒜 : filter α) (ℬ : filter β) := (f <$> 𝒜) ≤ ℬ
 
