@@ -36,8 +36,6 @@ def Join_filter (ℱ : filter (filter α)) : filter α :=
 , λ A B hA hB, sets_of_superset ℱ (inter_sets ℱ hA hB) (λ 𝒢 ⟨h₁, h₂⟩, inter_sets 𝒢 h₁ h₂)
 ⟩
 
-
-
 instance : partial_order (filter α) :=
 { le := λ ℱ 𝒢, 𝒢.sets ⊆ ℱ.sets
 , le_antisymm := λ _ _ h₁ h₂, filter.ext $ subset.antisymm h₂ h₁
@@ -118,6 +116,28 @@ instance : complete_lattice (filter α) :=
 , ..filter.partial_order
 }
 
+variables {β : Type u}
+
+def map (m : α → β) (𝒜 : filter α) : filter β :=
+{ sets := {S | {x | m x ∈ S} ∈ 𝒜}
+, univ_sets := 𝒜.univ_sets
+, sets_of_superset := λ X Y h₁ ss, 𝒜.sets_of_superset h₁ (λ x h₂, ss h₂)
+, inter_sets := λ X Y h₁ h₂, 𝒜.inter_sets h₁ h₂
+}
+
+instance : functor (filter) := {
+    map := λ α β m 𝒜, map m 𝒜
+}
+
+instance : is_lawful_functor (filter) := 
+{ id_map := λ α f, filter.ext rfl
+, comp_map := λ α β γ g h 𝒜, filter.ext rfl
+}
+
+/-- An ultrafilter is a minimal filter. Adding any more sets will cause it to be the universe. -/
+def ultrafilter := {ℱ : filter α // is_minimal ℱ}
+
+def tendsto {β : Type u} (f : α → β) (𝒜 : filter α) (ℬ : filter β) := (f <$> 𝒜) ≤ ℬ
 
 end filter
 

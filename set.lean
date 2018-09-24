@@ -6,9 +6,13 @@ universes u v
 variables {α : Type u} {ι : Type v}
 
 variables {A B C D X Y : set α}
+variables {a b c : α}
 
 theorem ext (h : ∀ a, a ∈ A ↔ a ∈ B) : A = B :=
 funext (λ a, propext (h a))
+
+lemma pair₁ : a ∈ ({a,b} : set α) := begin apply or.inr, apply or.inl, refl end
+lemma pair₂ : b ∈ ({a,b} : set α) := begin apply or.inl, refl end
 
 @[refl] theorem subset.refl : A ⊆ A := λ _ m, m
 @[trans] theorem subset.trans (s₁ : A ⊆ B) (s₂ : B ⊆ C) : A ⊆ C := λ _ ma, s₂ $ s₁ ma

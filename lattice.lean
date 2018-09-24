@@ -1,8 +1,14 @@
+import .set
 set_option old_structure_cmd true -- stops errors for diamonds.
+
 universes u v
-variables {α : Type u} {ι : Type v}
+variables {α : Type u} {ι : Type v} {a b c: α}
 reserve infixl ` ⊓ `:70
 reserve infixl ` ⊔ `:65
+
+instance [partial_order α] : has_coe (a = b) (a ≤ b) := ⟨le_of_eq⟩
+instance : has_coe (a = b) (b = a) := ⟨eq.symm⟩
+infixl ` ◾ ` : 300 := le_trans
 
 /-- Typeclass for the `⊔` (`\lub`) notation -/
 class has_join (α : Type u) := (join : α → α → α)
@@ -35,10 +41,29 @@ class meet_semilattice (α : Type u) extends has_meet α, partial_order α :=
 (π₂ (a b : α) : a ⊓ b ≤ b)
 (u_meet (a b c : α) : a ≤ b → a ≤ c → a ≤ b ⊓ c)
 
+class has_terminal (α : Type u) extends has_top α, partial_order α :=
+(le_top (a : α) : a ≤ ⊤)
+
 /--Setwise meets-/
 class Meet_semilattice (α : Type u) extends has_Meet α, partial_order α :=
 (π : ∀s, ∀a∈s, Meet s ≤ a)
 (u_Meet : ∀s a, (∀b∈s, a ≤ b) → a ≤ Meet s)
+open Meet_semilattice
+
+
+instance meet_of_Meet [Meet_semilattice α] : meet_semilattice α :=
+{ meet := λ a b, ⨅₀ {a,b},
+  π₁ := λ a b, π {a,b} a set.pair₁,
+  π₂ := λ a b, π {a,b} b set.pair₂,
+  u_meet := λ a b c ab ac, u_Meet {b,c} a (λ x h, or.rec_on h (λ p, ac ◾ p) (λ h₂, or.rec_on h₂ (λ p, ab ◾ p) (λ q, false.rec_on _ q))),
+  ..Meet_semilattice.to_partial_order α
+ }
+
+instance top_of_Meet [Meet_semilattice α] : has_terminal α :=
+{ top := ⨅₀ ∅
+, le_top := λ a, u_Meet ∅ a (λ b h, false.rec_on _ h)
+, ..meet_semilattice.to_partial_order α 
+}
 
 class join_semilattice (α : Type u) extends has_join α, partial_order α :=
 (ι₁ (a b : α) : a ≤ a ⊔ b)
@@ -47,20 +72,16 @@ class join_semilattice (α : Type u) extends has_join α, partial_order α :=
 
 class lattice (α : Type u) extends meet_semilattice α, join_semilattice α 
 
-class has_terminal (α : Type u) extends has_top α, partial_order α :=
-(le_top (a : α) : a ≤ ⊤)
+
 
 class has_initial (α : Type u) extends has_bot α, partial_order α :=
 (bot_le (a : α) : ⊥ ≤ a)
 
 class bounded_lattice (α : Type u) extends lattice α, has_terminal α, has_initial α
 
-class complete_lattice (α : Type u) extends bounded_lattice α, has_Join α, has_Meet α :=
+class Join_semilattice (α : Type u) extends bounded_lattice α, has_Join α, has_Meet α :=
 (ι : ∀s, ∀a∈s, a ≤ Join s)
 (u_Join : ∀s a, (∀b∈s, b ≤ a) → Join s ≤ a)
-
-
-
 
 /-- A distributive lattice is a lattice that satisfies any of four
   equivalent distribution properties (of sup over inf or inf over sup,
@@ -71,7 +92,9 @@ class complete_lattice (α : Type u) extends bounded_lattice α, has_Join α, ha
 class distrib_lattice α extends lattice α :=
 (le_sup_inf : ∀x y z : α, (x ⊔ y) ⊓ (x ⊔ z) ≤ x ⊔ (y ⊓ z))
 
+/-- A lattice which has setwise joins and meets -/
+class complete_lattice α extends Meet_semilattice α, Join_semilattice α, meet_semilattice α, join_semilattice α, has_terminal α, has_initial α
 
-
-
+def is_minimal [has_initial α]  (a : α) : Prop := ∀ b : α, b < a → b = ⊥
+def is_maximal [has_terminal α]  (a : α) : Prop := ∀ b : α, a < b → b = ⊤
 
