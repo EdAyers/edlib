@@ -24,7 +24,15 @@ def is_open (U : set X) : Prop := U ∈ 𝒪(X)
 def is_closed (V : set X) : Prop :=  (-V) ∈ 𝒪(X)
 /--Set of closed subsets of topology X -/
 def 𝒞 : set (set X) := {V | (-V) ∈ 𝒪(X)}
+
 def nhds (x : X) : filter X := ⨅₀ (principal <$> {U|x ∈ U ∧ U ∈ 𝒪(X)})
+lemma nhds_have_x {x : X} {U:set X} {h : U ∈ nhds x} : x ∈ U 
+:= free_gen.rec_on h
+    (λ V ⟨f,⟨W,⟨q,oW⟩,p⟩,j⟩ ,begin rw <-p at j, apply j q end) 
+    (⟨⟩) 
+    (λ A B _ ss xA, ss xA) 
+    (λ A B _ _ xA xB,⟨xA,xB⟩)
+
 def compact (S : set X) := ∀ℱ, ℱ ≠ ⊥ → ℱ ≤ principal S → ∃ s ∈ S, ℱ ⊓ nhds s ≠ ⊥
 def hausdorff (X : Type u) [topology X] := ∀ u v : X, ∃ (U ∈ 𝒪(X)) (V ∈ 𝒪(X)), u ∈ U ∧ v ∈ V ∧ U ∩ V = ∅ 
 instance (α : Type u) : partial_order (topology α) := 
@@ -62,22 +70,29 @@ def free {X : Type u} (x : X) (ℱ : filter X) : topology X :=
 , U := λ 𝒢 f𝒢 ⟨G, GG, xG⟩, filter.sets_of_superset ℱ (f𝒢 GG xG) (λ y o, ⟨G,GG,o⟩)
 } 
 def is_galois {X : Type u} {x : X} {ℱ : filter X} (τ : topology X) : ℱ ≤ @nhds _ τ x ↔ τ ≤ free x ℱ :=
-begin
-    apply iff.intro,
-    focus {
-        assume l U oU h,
-        apply l, apply filter.free_gen.basic, 
-        existsi (principal U), split, existsi U, split, split, assumption, assumption, refl, intro r, exact id
-    },
-    focus {
-        assume r U fU, apply r, cases fU,
-        focus {
-            cases fU_a with f h, 
-            cases h with h h₂, cases h with V h₄, cases h₄ with h₃ h₄, cases h₄, clear h₄, cases h₃ with h₃ h₅,
+⟨
+    assume l : ∀ U, U ∈ @nhds _ τ x → U ∈ ℱ,
+    assume U (oU : U ∈ @𝒪 _ τ) (xU : x ∈ U), 
+    l U $ free_gen.basic ⟨principal U, ⟨U,⟨xU,oU⟩,rfl⟩, λ _, id⟩
+,   assume r : ∀ V, V ∈ @𝒪 X τ → x ∈ V → V ∈ ℱ,
+    assume U nU, begin apply free.is_galois.mp _ nU, assume V h, cases h with f h₂, cases h₂ with h₂ h₃, cases h₂ with W h₄, cases h₄ with h₄ h₅,  cases h₄ with h₄ h₆, rw <- h₅ at *, clear h₅ f, apply filter.sets_of_superset ℱ, apply r, apply h₆, apply h₄, apply h₃,  end 
+⟩
+-- begin
+--     apply iff.intro,
+--     focus {
+--         assume l U oU h,
+--         apply l, apply filter.free_gen.basic, 
+--         existsi (principal U), split, existsi U, split, split, assumption, assumption, refl, intro r, exact id
+--     },
+--     focus {
+--         assume r U fU, apply r, cases fU,
+--         focus {
+--             cases fU_a with f h, 
+--             cases h with h h₂, cases h with V h₄, cases h₄ with h₃ h₄, cases h₄, clear h₄, cases h₃ with h₃ h₅,
             
-        } 
-    }
-end
+--         } 
+--     }
+-- end
 
 def continuous {X Y : Type u} [topology X] [topology Y] (f : X → Y) := ∀ V ∈ 𝒪(Y), {x|f(x)∈V} ∈ 𝒪(X)
 lemma continuous.id : continuous (id : X → X) := λ V oV, oV

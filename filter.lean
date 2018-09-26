@@ -95,8 +95,8 @@ instance : complete_lattice (filter α) :=
 , u_meet := λ (𝒜 ℬ 𝒞 : filter α) ab ac X ⟨B, hB, C, hC, ix⟩, sets_of_superset 𝒜 (inter_sets 𝒜 (ab hB) (ac hC)) ix
 
 , join := λ ℱ 𝒢, free (forget ℱ ∩ forget 𝒢)
-, ι₁ := λ ℱ 𝒢, free.is_galois.1 subset.π₁
-, ι₂ := λ ℱ 𝒢, free.is_galois.1 subset.π₂
+, ι₁ := λ ℱ 𝒢, free.is_galois.1 inter.π₁
+, ι₂ := λ ℱ 𝒢, free.is_galois.1 inter.π₂
 , u_join := λ 𝒜 ℬ 𝒞 ba ca A hA, free_gen.basic ⟨ba hA, ca hA⟩
 
 , top := principal univ
