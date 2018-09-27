@@ -5,6 +5,10 @@ universes u v
 
 section
   variables {α : Type u} {ι : Type v} {a b c: α}
+  /-- A function between preorders is monotone if
+  `a ≤ b` implies `f a ≤ f b`. -/
+  def monotone [preorder α] [preorder ι] (f : α → ι) := ∀⦃a b⦄, a ≤ b → f a ≤ f b
+
   reserve infixl ` ⊓ `:70
   reserve infixl ` ⊔ `:65
 
@@ -79,7 +83,7 @@ class has_initial extends has_bot α :=
 
 class bounded_lattice extends lattice α, has_terminal α, has_initial α
 
-class Join_semilattice extends bounded_lattice α, has_Join α, has_Meet α :=
+class Join_semilattice extends has_Join α :=
 (ι : ∀s, ∀a∈s, a ≤ Join s)
 (u_Join : ∀s a, (∀b∈s, b ≤ a) → Join s ≤ a)
 
@@ -92,9 +96,46 @@ class Join_semilattice extends bounded_lattice α, has_Join α, has_Meet α :=
 class distrib_lattice extends lattice α :=
 (le_sup_inf : ∀x y z : α, (x ⊔ y) ⊓ (x ⊔ z) ≤ x ⊔ (y ⊓ z))
 
-/-- A lattice which has setwise joins and meets -/
+/-- A lattice which has setwise joins and meets. You also must explicitly provide the meets and joins to make definitional equality nice. -/
 class complete_lattice extends Meet_semilattice α, Join_semilattice α, meet_semilattice α, join_semilattice α, has_terminal α, has_initial α
-
+open complete_lattice
 def is_minimal [has_initial α]  (a : α) : Prop := ∀ b : α, b < a → b = ⊥
 def is_maximal [has_terminal α]  (a : α) : Prop := ∀ b : α, a < b → b = ⊤
 
+section order_dual
+def order_dual (α : Type*) := α
+instance (α : Type*) [has_le α] : has_le (order_dual α) := ⟨λ (x y : α), y ≤ x⟩
+instance (α : Type*) [po : partial_order α] : partial_order (order_dual α) :=
+{ le_refl := begin intros, apply le_refl end
+, le_trans := begin intros, apply le_trans, assumption, assumption end
+, le_antisymm := begin intros, apply @le_antisymm _ po, assumption, assumption end
+, ..(order_dual.has_le α)
+}
+instance [x : has_meet α] : has_join (order_dual α) := ⟨(@has_meet.meet _ x : α → α → α)⟩
+instance [x : has_join α] : has_meet (order_dual α) := ⟨(@has_join.join _ x : α → α → α)⟩
+instance [x : has_top α] : has_bot (order_dual α) := ⟨(⊤ : α)⟩
+instance [x : has_bot α] : has_top (order_dual α) := ⟨(⊥ : α)⟩
+instance [x : has_Join α] : has_Meet (order_dual α) := ⟨(@has_Join.Join _ x : set α → α)⟩
+instance [x : has_Meet α] : has_Join (order_dual α) := ⟨(@has_Meet.Meet _ x : set α → α)⟩
+
+instance dual [po : partial_order α] [cl : complete_lattice α] : @complete_lattice (order_dual α) (@order_dual.partial_order α po) :=
+{ π₁ :=     @complete_lattice.ι₁     α po cl
+, ι₁ :=     @complete_lattice.π₁     α po cl
+, π₂ :=     @complete_lattice.ι₂     α po cl
+, ι₂ :=     @complete_lattice.π₂     α po cl
+, π :=      @complete_lattice.ι      α po cl
+, ι :=      @complete_lattice.π      α po cl
+, u_Meet := @complete_lattice.u_Join α po cl
+, u_meet := @complete_lattice.u_join α po cl
+, u_Join := @complete_lattice.u_Meet α po cl
+, u_join := @complete_lattice.u_meet α po cl
+, bot_le := @complete_lattice.le_top α po cl
+, le_top := @complete_lattice.bot_le α po cl
+, ..order_dual.has_bot
+, ..order_dual.has_top
+, ..order_dual.has_meet
+, ..order_dual.has_join
+, ..order_dual.has_Join
+, ..order_dual.has_Meet
+}
+end order_dual
