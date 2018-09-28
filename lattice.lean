@@ -118,24 +118,24 @@ instance [x : has_bot α] : has_top (order_dual α) := ⟨(⊥ : α)⟩
 instance [x : has_Join α] : has_Meet (order_dual α) := ⟨(@has_Join.Join _ x : set α → α)⟩
 instance [x : has_Meet α] : has_Join (order_dual α) := ⟨(@has_Meet.Meet _ x : set α → α)⟩
 
-instance dual [po : partial_order α] [cl : complete_lattice α] : @complete_lattice (order_dual α) (@order_dual.partial_order α po) :=
-{ π₁ :=     @complete_lattice.ι₁     α po cl
-, ι₁ :=     @complete_lattice.π₁     α po cl
-, π₂ :=     @complete_lattice.ι₂     α po cl
-, ι₂ :=     @complete_lattice.π₂     α po cl
-, π :=      @complete_lattice.ι      α po cl
-, ι :=      @complete_lattice.π      α po cl
-, u_Meet := @complete_lattice.u_Join α po cl
-, u_meet := @complete_lattice.u_join α po cl
-, u_Join := @complete_lattice.u_Meet α po cl
-, u_join := @complete_lattice.u_meet α po cl
-, bot_le := @complete_lattice.le_top α po cl
-, le_top := @complete_lattice.bot_le α po cl
-, ..order_dual.has_bot
-, ..order_dual.has_top
-, ..order_dual.has_meet
-, ..order_dual.has_join
-, ..order_dual.has_Join
-, ..order_dual.has_Meet
-}
+-- instance dual [po : partial_order α] [cl : complete_lattice α] : @complete_lattice (order_dual α) (@order_dual.partial_order α po) :=
+-- { π₁ :=     @complete_lattice.ι₁     α po cl
+-- , ι₁ :=     @complete_lattice.π₁     α po cl
+-- , π₂ :=     @complete_lattice.ι₂     α po cl
+-- , ι₂ :=     @complete_lattice.π₂     α po cl
+-- , π :=      @complete_lattice.ι      α po cl
+-- , ι :=      @complete_lattice.π      α po cl
+-- , u_Meet := @complete_lattice.u_Join α po cl
+-- , u_meet := @complete_lattice.u_join α po cl
+-- , u_Join := @complete_lattice.u_Meet α po cl
+-- , u_join := @complete_lattice.u_meet α po cl
+-- , bot_le := @complete_lattice.le_top α po cl
+-- , le_top := @complete_lattice.bot_le α po cl
+-- , ..order_dual.has_bot
+-- , ..order_dual.has_top
+-- , ..order_dual.has_meet
+-- , ..order_dual.has_join
+-- , ..order_dual.has_Join
+-- , ..order_dual.has_Meet
+-- }
 end order_dual

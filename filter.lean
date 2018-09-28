@@ -131,10 +131,23 @@ instance : is_lawful_functor (filter) :=
 , comp_map := λ α β γ g h 𝒜, filter.ext rfl
 }
 
+instance : monad filter :=
+{ bind := λ α β ℱ m, Join_filter (m <$> ℱ)
+, pure := λ α a, principal {a}
+, ..filter.functor
+}
+
+protected def lift (ℱ : filter α) (f: set α → filter β) := ⨅₀ (f <$> ℱ.sets)
+protected def lift' (ℱ : filter α) (f : set α → set β) : filter β := ⨅₀ ((principal ∘ f) <$> ℱ.sets)
+
 /-- An ultrafilter is a minimal filter. Adding any more sets will cause it to be the universe. -/
 def ultrafilter := {ℱ : filter α // ∀ 𝒢 : filter α,  𝒢 < ℱ → 𝒢 = ⊥}
 
 def tendsto {β : Type u} (f : α → β) (𝒜 : filter α) (ℬ : filter β) := (f <$> 𝒜) ≤ ℬ
+
+lemma mp_sets {U V : set α} (hs : U ∈ ℱ) (h : {x | x ∈ U → x ∈ V} ∈ ℱ) : V ∈ ℱ :=
+sets_of_superset ℱ (inter_sets _ hs h) $ λ a ⟨h₁, h₂⟩, h₂ h₁
+
 
 end filter
 

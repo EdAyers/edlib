@@ -20,6 +20,7 @@ theorem subset.antisymm (l : A ⊆ B) (r : B ⊆ A) : A = B := ext (λ _, ⟨λ 
 theorem union.empty : ⋃₀(∅ : set (set α)) = ∅ := ext $ λ a, ⟨λ ⟨_,o,_⟩, false.rec_on _ o, λ o, false.rec_on _ o⟩
 theorem inter.π₁ : A ∩ B ⊆ A := λ x a, a.1
 theorem inter.π₂ : A ∩ B ⊆ B := λ x a, a.2
+theorem union.ι {ℱ : set $ set α} {U : set α} : U ∈ ℱ →  U ⊆ ⋃₀ ℱ := λ Uℱ a aU, ⟨U, Uℱ, aU⟩
 /--Universality of intersection-/
 theorem subset.inter : X ⊆ A → X ⊆ B → X ⊆ A ∩ B
 := λ a b x h, ⟨a h, b h⟩
