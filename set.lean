@@ -1,4 +1,3 @@
-
 namespace set
 
 universes u v
@@ -29,6 +28,7 @@ theorem subset.inter_subset_inter : A ⊆ B → C ⊆ D → A ∩ C ⊆ B ∩ D
 theorem subset.empty : ∅ ⊆ A := λ o oh, false.rec_on _ oh
 theorem subset.univ : A ⊆ univ := λ _ _, ⟨⟩
 theorem inter.empty : ∅ ∩ A = ∅ := ext (λ x, ⟨λ ⟨a,_⟩, a, λ x, false.rec_on _ x⟩)
+theorem inter.univ : univ ∩ A = A := ext (λ x, ⟨λ ⟨_,a⟩, a, λ mA, ⟨⟨⟩,mA⟩⟩) 
 theorem inter_comm (X Y : set α) : X ∩ Y = Y ∩ X := ext $ λ a, and.comm
 theorem inter_assoc (A B C : set α): (A ∩ B) ∩ C = A ∩ (B ∩ C) := ext $ λ a, and.assoc
 instance inter_is_assoc : is_associative (set α) (∩) := ⟨inter_assoc⟩
@@ -49,5 +49,9 @@ def triv_insert {α : Type*} {a : α} : a ∈ ({a} : set α) := or.inl rfl
 
 def sInter.univ_singleton : ⋂₀ {(univ : set α)} = (univ : set α) := 
 ext $ λ a, ⟨λ h, h univ $ or.inl rfl, λ h A H, or.rec_on H (λ p, eq.symm p ▸ h) (λ o, false.rec_on _ o)⟩
+
+def Inter_compl {s : ι → set α} : (⋂ i, s i) = - (⋃ i, - (s i))
+:= set.ext $ λ a, ⟨λ h₁ ⟨i,h₂⟩, h₂ (h₁ i),λ h₁ i, classical.by_contradiction (λ h₂, h₁ ⟨i,h₂⟩)⟩
+
 
 end set

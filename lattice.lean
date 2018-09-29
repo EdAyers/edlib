@@ -138,4 +138,38 @@ instance [x : has_Meet α] : has_Join (order_dual α) := ⟨(@has_Meet.Meet _ x 
 -- , ..order_dual.has_Join
 -- , ..order_dual.has_Meet
 -- }
+
+instance {α : Type u}: preorder (set α) := 
+{ le := λ A B, A ⊆ B
+, le_refl := λ A x, id
+, le_trans := λ A B C f g _ h, g (f h)
+}
+
+instance {α : Type u} : partial_order (set α) := 
+{ le_antisymm := λ A B p q, set.ext $ λ x, ⟨λ h, p h,λ h, q h⟩
+, ..set.preorder
+}
+
+instance : complete_lattice (set α) :=
+{ meet := λ A B, A ∩ B
+, join := λ A B, A ∪ B
+, Meet := λ ℱ, ⋂₀ ℱ
+, Join := λ ℱ, ⋃₀ ℱ
+, top := set.univ
+, bot := ∅
+, π₁ := λ A B, λ x a, a.1
+, π₂ := λ A B, λ x a, a.2
+, u_meet := λ A B C AB AC x xA, ⟨AB xA, AC xA⟩
+, π := λ ℱ A h₁ x h₂, h₂ A h₁
+, u_Meet := λ ℱ A h₁ x xA B h₂, h₁ B h₂ xA
+, ι₁ := λ A B, λ x a, or.inl a
+, ι₂ := λ A B, λ x a, or.inr a
+, u_join := λ A B C BA CA x h, or.rec_on h (λ q, BA q) (λ q, CA q)
+, ι := λ ℱ A h₁ x h₂, ⟨A,h₁,h₂⟩
+, u_Join := λ ℱ A p x ⟨B,h₁,h₂⟩, p B h₁ h₂
+, le_top := λ A x _, ⟨⟩
+, bot_le := λ A x o, false.rec_on _ o  
+}
+
+
 end order_dual
