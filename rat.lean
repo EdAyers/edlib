@@ -3,7 +3,10 @@ universe u
 
 namespace field 
 
-structure q (α : Type u) [integral_domain α]:= (n : α) (d : {a :α// a ≠ 0})
+structure q (α : Type u) [integral_domain α] := (n : α) (d : {a :α// a ≠ 0})
+lemma q.ext {α : Type u} [integral_domain α] : Π (q1 q2 : q α), q1.n = q2.n → q1.d = q2.d → q1 = q2
+|⟨n,d⟩ ⟨_,_⟩ rfl rfl := rfl
+
 instance (α : Type u) [integral_domain α] : setoid (q α) :=
 { r := (λ a b, a.1 * b.2 = b.1 * a.2)
 , iseqv := 
@@ -35,6 +38,8 @@ begin apply quotient.sound, apply h end
 def quotient.restrict_lift_on (q : quotient.restrict P) (f : Π (a:α), a ∈ P → β) 
   (p : ∀ a b (aP : a ∈ P) (bP : b ∈ P), a ≈ b → f a aP = f b bP) : β := 
   @quotient.lift_on _ β (setoid.restrict s P) q (λ ⟨x,xP⟩, f x xP) (λ ⟨a,aP⟩ ⟨b,bP⟩ r, p a b aP bP r)
+lemma quotient.lift_beta [setoid α] (f : α → β) (p : _) (q:α) : quotient.lift f p (quotient.mk q) = f q
+:= begin simp [quotient.lift], apply quot.lift_beta, apply p end
 end restrict
 def free (α : Type u) [integral_domain α] : Type* := @quotient (q α) (by apply_instance)
 variables {α : Type u} [integral_domain α]
@@ -59,7 +64,25 @@ def add : free α → free α → free α
                                                   ...  = (b1.1 * b2.2 + b2.1 * b1.2) * (a1.2 * a2.2)                     : by apply eq.symm; apply integral_domain.right_distrib
   )
 
-instance : has_add (free α) := ⟨free.add⟩
+instance : has_add (free α) := ⟨λ a b , add a b⟩
+def prod.ext {α β : Type u} : Π (p q : α × β) (l : p.1 = q.1) (r : p.2 = q.2), p = q
+|⟨p1,p2⟩ ⟨q1,q2⟩ rfl rfl := rfl
+lemma add_assoc (A B C : free α) : (A + B) + C = A + (B + C) :=
+begin 
+  apply quotient.induction_on A, 
+  apply quotient.induction_on B, 
+  apply quotient.induction_on C,
+  intros a b c,
+  repeat {rewrite [quotient.lift_beta]},
+  apply quot.sound, simp [setoid.r],
+  show (a.n * (c.d * b.d) + (b.n * c.d + c.n * b.d) * a.d) * ((c.d) * ((b.d) * (a.d))) 
+       = (c.n * (b.d * a.d) + (a.n * b.d + b.n * a.d) * c.d) * ((c.d * b.d) * a.d),
+  repeat {rw [integral_domain.right_distrib]},
+  --have p: (a.n * (↑(c.d) * ↑(b.d)) * (↑(c.d) * (↑(b.d) * ↑(a.d)))) = (a.n * ↑(b.d) * ↑(c.d) * (↑(c.d) * ↑(b.d) * ↑(a.d))), by cc,
+  sorry
+
+end
+
 -- I wonder if there is a lemma from universal algebra that lets me show that this is a field instantly. Just show that a load of free functors exist.
 
 
@@ -89,9 +112,27 @@ def mul : free α → free α → free α
       calc (a1.1 * a2.1) * (b1.2 * b2.2) = (a1.1 * b1.2) * (a2.1 * b2.2) : by ac_refl
            ... = (b1.1 * a1.2) * (b2.1 * a2.2) : by rw [p,q]
            ... = (b1.1* b2.1) * (a1.2 * a2.2) : by ac_refl
-    )
+  )
+
+def neg : free α → free α
+:= λ x, quotient.lift_on x (λ x, ⟦(⟨-x.1,x.2,x.2.2⟩ : q α)⟧) 
+  (λ a b, 
+    assume r : a.1 * b.2 = b.1 * a.2,
+    suffices (-a.1) * b.2 = (- b.1)* a.2, from quotient.sound this,
+    calc (-a.1) * b.2 = - (a.1 * b.2) : by simp
+          ... = -(b.1 * a.2) : by rw r
+          ... = (- b.1)* a.2 : by simp
+  )
 
 
+instance : ring (free α) :=
+{ zero := zero
+, mul := mul
+, add := add
+, one := one
+, neg := neg
+, 
+}
 
 -- -- def add : free α → free α → free α
 -- -- |⟦⟨a,b⟩⟧ ⟦⟨x,y⟩⟧ := ⟦⟨a * y + x * b, b * y⟩⟧
