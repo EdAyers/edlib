@@ -3,9 +3,9 @@ universe u
 
 namespace field 
 
-structure q (α : Type u) [integral_domain α] := (n : α) (d : {a :α// a ≠ 0})
+structure q (α : Type u) [integral_domain α] := (n : α) (d : α ) (nz : d ≠ 0)
 lemma q.ext {α : Type u} [integral_domain α] : Π (q1 q2 : q α), q1.n = q2.n → q1.d = q2.d → q1 = q2
-|⟨n,d⟩ ⟨_,_⟩ rfl rfl := rfl
+|⟨n,d,nz⟩ ⟨_,_,_⟩ rfl rfl := rfl
 
 instance (α : Type u) [integral_domain α] : setoid (q α) :=
 { r := (λ a b, a.1 * b.2 = b.1 * a.2)
@@ -51,7 +51,7 @@ def mul_neq_zero (a b : α) (anz : a ≠ 0) (bnz : b ≠ 0) : a * b ≠ 0 :=
 
 def add : free α → free α → free α 
 := λ x y, quotient.lift_on₂ x y 
-  (λ x y, ⟦(⟨x.1 * y.2 + y.1 * x.2, x.2 * y.2, mul_ne_zero x.2.2 y.2.2⟩ : q α)⟧) 
+  (λ x y, ⟦(⟨x.1 * y.2 + y.1 * x.2, x.2 * y.2, mul_ne_zero x.nz y.nz⟩ : q α)⟧) 
   (λ a1 a2 b1 b2,
       assume p : a1.1 * b1.2 = b1.1 * a1.2,
       assume q : a2.1 * b2.2 = b2.1 * a2.2,
@@ -64,46 +64,79 @@ def add : free α → free α → free α
                                                   ...  = (b1.1 * b2.2 + b2.1 * b1.2) * (a1.2 * a2.2)                     : by apply eq.symm; apply integral_domain.right_distrib
   )
 
+def neg : free α → free α
+:= λ x, quotient.lift_on x (λ x, ⟦(⟨-x.1,x.2,x.nz⟩ : q α)⟧) 
+  (λ a b, 
+    assume r : a.1 * b.2 = b.1 * a.2,
+    suffices (-a.1) * b.2 = (- b.1)* a.2, from quotient.sound this,
+    by simp [r]
+  )
+instance : has_neg (free α) := ⟨neg⟩
+
 instance : has_add (free α) := ⟨λ a b , add a b⟩
 def prod.ext {α β : Type u} : Π (p q : α × β) (l : p.1 = q.1) (r : p.2 = q.2), p = q
 |⟨p1,p2⟩ ⟨q1,q2⟩ rfl rfl := rfl
+
+--
 lemma add_assoc (A B C : free α) : (A + B) + C = A + (B + C) :=
 begin 
   apply quotient.induction_on A, 
   apply quotient.induction_on B, 
   apply quotient.induction_on C,
   intros a b c,
-  repeat {rewrite [quotient.lift_beta]},
   apply quot.sound, simp [setoid.r],
   show (a.n * (c.d * b.d) + (b.n * c.d + c.n * b.d) * a.d) * ((c.d) * ((b.d) * (a.d))) 
        = (c.n * (b.d * a.d) + (a.n * b.d + b.n * a.d) * c.d) * ((c.d * b.d) * a.d),
   repeat {rw [integral_domain.right_distrib]},
-  --have p: (a.n * (↑(c.d) * ↑(b.d)) * (↑(c.d) * (↑(b.d) * ↑(a.d)))) = (a.n * ↑(b.d) * ↑(c.d) * (↑(c.d) * ↑(b.d) * ↑(a.d))), by cc,
-  sorry
-
+  generalize ah₁ : (a.n * (c.d * b.d) * (c.d * (b.d * a.d))) = a₁,
+  generalize ah₂: a.n * b.d * c.d * (c.d * b.d * a.d) = a₂,
+  generalize bh₁: b.n * c.d * a.d * (c.d * (b.d * a.d)) = b₁,
+  generalize bh₂: b.n * a.d * c.d * (c.d * b.d * a.d) = b₂,
+  generalize ch₁: c.n * b.d * a.d * (c.d * (b.d * a.d)) = c₁,
+  generalize ch₂: c.n * (b.d * a.d) * (c.d * b.d * a.d) = c₂,
+  have p : a₁ = a₂, by rw [<-ah₁, <-ah₂]; ac_refl,
+  have q : b₁ = b₂, by rw [<-bh₁, <-bh₂]; ac_refl,
+  have r : c₁ = c₂, by rw [<-ch₁, <-ch₂]; ac_refl,
+  rw [p,q,r],
+  ac_refl
 end
-
--- I wonder if there is a lemma from universal algebra that lets me show that this is a field instantly. Just show that a load of free functors exist.
 
 
 def pure : α → free α := λ a, ⟦⟨a,1,one_ne_zero⟩⟧
-def zero : free α := free.pure 1
-def one : free α := free.pure 0
+def zero : free α := free.pure 0
+def one : free α := free.pure 1
+
+lemma zero_add (A : free α) : free.zero + A = A :=
+begin
+  apply quotient.induction_on A,
+  intros a,
+  apply quot.sound, 
+  simp [setoid.r],
+end
+
+lemma add_comm (A B : free α) : A + B = B + A :=
+begin 
+  apply quotient.induction_on₂ A B, intros a b, apply quot.sound, simp [setoid.r],
+  repeat {rw [integral_domain.right_distrib]},
+  cc
+end
+
+lemma add_zero (A : free α) : A + free.zero = A := by rw [add_comm]; apply zero_add 
 
 def nonzero (α : Type*) [integral_domain α] := quotient.restrict ({x: q α| x.1 ≠ 0})
 
-def inv (x: nonzero α) : free α
+def inv_guard (x: nonzero α) : free α
 := quotient.restrict_lift_on x 
   (λ p nez, quotient.mk $ ⟨p.2,p.1,nez⟩) 
   (λ a b az bz,
     assume r : a.1 * b.2 = b.1 * a.2, 
     quotient.sound $
-    show ↑a.2 * (b.1) = b.2 * a.1, from begin apply eq.symm, rw [integral_domain.mul_comm, r], ac_refl  end
+    show a.d * (b.n) = b.d * a.n, from begin apply eq.symm, rw [integral_domain.mul_comm, r], ac_refl  end
   )
 
 def mul : free α → free α → free α
 := λ x y, quotient.lift_on₂ x y 
-  (λ x y, ⟦(⟨x.1 * y.1, x.2 * y.2, mul_ne_zero x.2.2 y.2.2⟩ : q α)⟧)
+  (λ x y, ⟦(⟨x.1 * y.1, x.2 * y.2, mul_ne_zero x.nz y.nz⟩ : q α)⟧)
   (λ a1 a2 b1 b2,
       assume p : a1.1 * b1.2 = b1.1 * a1.2,
       assume q : a2.1 * b2.2 = b2.1 * a2.2,
@@ -113,25 +146,84 @@ def mul : free α → free α → free α
            ... = (b1.1 * a1.2) * (b2.1 * a2.2) : by rw [p,q]
            ... = (b1.1* b2.1) * (a1.2 * a2.2) : by ac_refl
   )
+instance : has_mul (free α) := ⟨mul⟩
+def mul_comm (A B : free α) : A * B = B * A :=
+begin
+  apply quotient.induction_on₂ A B, intros a b, apply quot.sound, simp [setoid.r], ac_refl
+end
+def mul_assoc (A B C : free α) : (A * B )* C = A * (B * C) :=
+begin
+  apply quotient.induction_on₂ A B, intros a b, apply quotient.induction_on C, intro c, apply quot.sound, simp [setoid.r], ac_refl
+end
+#check field.add_left_neg
+lemma add_left_neg (A : free α) : (-A) + A = free.zero := begin
+  apply quotient.induction_on A, intros a, apply quot.sound, simp [setoid.r],
+  repeat {rw [integral_domain.right_distrib]},
+  end
 
-def neg : free α → free α
-:= λ x, quotient.lift_on x (λ x, ⟦(⟨-x.1,x.2,x.2.2⟩ : q α)⟧) 
-  (λ a b, 
-    assume r : a.1 * b.2 = b.1 * a.2,
-    suffices (-a.1) * b.2 = (- b.1)* a.2, from quotient.sound this,
-    calc (-a.1) * b.2 = - (a.1 * b.2) : by simp
-          ... = -(b.1 * a.2) : by rw r
-          ... = (- b.1)* a.2 : by simp
-  )
+  lemma add_right_neg (A : free α) : (A) + (-A) = free.zero := begin
+  apply quotient.induction_on A, intros a, apply quot.sound, simp [setoid.r],
+  repeat {rw [integral_domain.right_distrib]},
+  end
+
+lemma one_mul (A : free α) : free.one * A = A := begin
+  apply quotient.induction_on A, intros a, apply quot.sound, simp [setoid.r],
+end
+lemma mul_one (A : free α) :  A * free.one = A := begin
+  apply quotient.induction_on A, intros a, apply quot.sound, simp [setoid.r],
+end
+
+#check congr_arg
+def congr_arg2 {α β γ : Type*} {f : α → β → γ} : ∀ {a₁ a₂ : α} {b₁ b₂ : β} , (a₁ = a₂) → (b₁ = b₂) → f a₁ b₁ = f a₂ b₂
+|_ _ _ _ rfl rfl := rfl
+
+lemma right_distrib (A B C : free α) : (A + B) * C = A * C + B * C :=
+begin 
+  apply quotient.induction_on A, 
+  apply quotient.induction_on B, 
+  apply quotient.induction_on C,
+  intros a b c,
+  apply quot.sound, simp [setoid.r],
+  repeat {rw [integral_domain.right_distrib]},
+  --rw [integral_domain.add_comm],
+  apply congr_arg2,
+  ac_refl,
+ac_refl
+end
+
+lemma left_distrib (A B C : free α) : A * ( B + C) = A * B + A * C :=
+begin 
+  apply quotient.induction_on A, 
+  apply quotient.induction_on B, 
+  apply quotient.induction_on C,
+  intros a b c,
+  apply quot.sound, simp [setoid.r],
+  repeat {rw [integral_domain.right_distrib]},
+  repeat {rw [integral_domain.left_distrib]},
+  repeat {rw [integral_domain.right_distrib]},
+  --rw [integral_domain.add_comm],
+  apply congr_arg2,
+  ac_refl, ac_refl
+end
 
 
-instance : ring (free α) :=
+instance : comm_ring (free α) :=
 { zero := zero
 , mul := mul
 , add := add
 , one := one
 , neg := neg
-, 
+, add_assoc := add_assoc
+, zero_add := zero_add
+, add_zero := add_zero
+, add_comm := add_comm
+, mul_comm := mul_comm
+, mul_assoc := mul_assoc
+, add_left_neg := add_left_neg
+, one_mul:=one_mul
+, mul_one:=mul_one
+, right_distrib:=right_distrib
+, left_distrib:=left_distrib
 }
 
 -- -- def add : free α → free α → free α
