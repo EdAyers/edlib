@@ -241,8 +241,8 @@ inductive mem (key:k) : node k α → Prop
 instance : has_mem (k) (node k α) := ⟨mem⟩
 lemma leaf_empty {key : k} : key ∉ (@Leaf k α) := λ h, by cases h
 
-def dominates (key : k) (t : node k α) : Prop
-:= ∀ k₂ ∈ t,  k₂ < key
+def dominates (k₁ : k) (t : node k α) : Prop
+:= ∀ k₂ ∈ t, k₁ > k₂
 def dominated_by (k₁ : k) (t : node k α) : Prop
 := ∀ k₂ ∈ t, k₁ < k₂
 infix ` ⋗ `: 50 := dominates
@@ -327,9 +327,6 @@ do
 
 meta def get_cases_candidate : expr → tactic expr := λ e,
 get_cases_candidate_single e <|> list.any_of (expr.get_app_args e) get_cases_candidate
-
-
-
 
 
 meta def recursion_cases : tactic unit :=
@@ -425,52 +422,19 @@ lemma rbal_mem : (key ∈ r) → (key ∈ rbal l v r) := begin
     }
 end
 
-/- I'm going to work out the solution to lbal_ordered in full to give me an idea of how the automation will work. -/
-lemma lbal_ordered : ∀ {l : node k α} {v : k × α} {r : node k α}, 
-    ordered l → v.1 ⋗ l → v.1 ⋖ r → ordered r 
-    → ordered (lbal l v r) :=
-     begin
-        intros l v r ol vdl rdv or,
-        induction l,
-        focus {simp, apply o_node ol vdl rdv or},
-        focus {
-            induction l_c, 
-            case rb.col.Red {
-                induction l_l,
-                focus {
-                    induction l_r, 
-                    focus {simp, apply o_node ol vdl rdv or, }, 
-                    focus {
-                        induction l_r_c, 
-                        case rb.col.Red { sorry  },
-                        case rb.col.Black {simp, apply o_node ol vdl rdv or}
-                    }},
-                focus {
-                    induction l_l_c,
-                    case rb.col.Red {
-                        induction l_r,
-                        focus {simp, sorry},
-                        focus {
-                            induction l_r_c,
-                            focus {simp, sorry},
-                            focus {simp, sorry}
-                        }
-                    },
-                    case rb.col.Black {
-                        induction l_r,
-                        focus {simp, apply o_node ol vdl rdv or},
-                        focus {
-                            induction l_r_c,
-                            focus {simp, sorry},
-                            focus {simp, apply o_node ol vdl rdv or}
-                        }
-                    }
-                }
-            }, 
-            case rb.col.Black {simp, apply o_node ol vdl rdv or }
-        }
+lemma rbal_rb {cl cr n} : is_rb l cl n → is_rb r cr n → ∃ c', is_rb (rbal l v r) c' (succ n) := 
+begin
+ intros lrb rrb, apply @rbal_ind k _ _ _ _ _  (λ t, ∃ c', is_rb (t) c' (succ n)) (λ t, is_rb t cr n), apply rrb, 
+ focus {intros, cases a, cases a_rb_l, },  
+ focus {intros, cases a, cases a_rb_r, },
+ focus {existsi Black, apply is_rb.black_rb, assumption, assumption}
+end
 
-     end
+-- [TODO] repeat for lbal.
+
+lemma lbal_rb {cl cr n} : is_rb l cl n → is_rb r cr n → ∃ c', is_rb (lbal l v r) c' (succ n) := sorry
+lemma ins_aux.is_rb {n} : is_rb t c n → ∃ c', is_rb (ins_aux key a t) c' n := sorry
+lemma ins_aux.ordered : ordered t → ordered (ins_aux key a t) := sorry
 
 /- Now that I have worked this out, 
 I am 100% sure that I can write some automation for this, probably in the same vain as auto2
