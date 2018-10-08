@@ -367,7 +367,7 @@ meta def one_of : list (tactic unit) → tactic unit
 meta def apply_pexpr : pexpr → tactic unit :=
 λ p, ((to_expr p) >>= apply) $> ⟨⟩
 
-lemma rbal_ind {P Q : node k α → Prop} {l : node k α} {v : k×α} {r : node k α} {q : Q r}
+lemma rbal_ind {P Q : node k α → Prop} {q : Q r}
     (c₁ : Π  {b c d w z}, Q(Rd (Rd b w c) z d) → P(Rd (Bk l v b) w (Bk c z d)))
     (c₂ : Π  {b c d w z}, Q(Rd b w (Rd c z d)) → P(Rd (Bk l v b) w (Bk c z d)))
     (c₃ : P(Bk l v r))
@@ -383,7 +383,7 @@ lemma rbal_ind {P Q : node k α → Prop} {l : node k α} {v : k×α} {r : node 
         ]},
     end
 
-lemma rbal_ordered {l : node k α} {v : k×α } {r : node k α} (ol : ordered l) (vdl : v.1 ⋗ l) (rdv : v.1 ⋖ r) (or : ordered r) : ordered (rbal l v r) :=
+lemma rbal_ordered (ol : ordered l) (vdl : v.1 ⋗ l) (rdv : v.1 ⋖ r) (or : ordered r) : ordered (rbal l v r) :=
 begin
    apply rbal_ind, apply and.intro or rdv,
    focus {
@@ -400,6 +400,28 @@ begin
     },
     focus {
         apply o_node ol vdl rdv or, 
+    }
+end
+
+lemma rbal_mem : (key ∈ r) → (key ∈ rbal l v r) := begin 
+    intros,
+    apply rbal_ind, apply a, focus {intros _ _ _ _ _ h, cases h, cases h_a, 
+        apply (mem.left $ mem.right _),assumption, 
+        apply (mem.mid _), assumption,
+        apply (mem.right $ mem.left _), assumption,
+        apply (mem.right $ mem.mid _), assumption,
+        apply (mem.right $ mem.right _), assumption,
+    }, 
+    focus {intros, cases a_1,
+        apply (mem.left $ mem.right _), assumption,
+    apply (mem.mid _), assumption,
+    cases a_1_a,
+    apply (mem.right $ mem.left _), assumption,
+    apply (mem.right $ mem.mid _), assumption,
+    apply (mem.right $ mem.right _), assumption,
+     },
+    focus {
+        apply mem.right, assumption,
     }
 end
 
