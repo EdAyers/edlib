@@ -101,7 +101,6 @@ begin
   ac_refl
 end
 
-
 def pure : α → free α := λ a, ⟦⟨a,1,one_ne_zero⟩⟧
 def zero : free α := free.pure 0
 def one : free α := free.pure 1
@@ -190,6 +189,8 @@ begin
   ac_refl,
 ac_refl
 end
+
+#eval 1 + 2 
 
 lemma left_distrib (A B C : free α) : A * ( B + C) = A * B + A * C :=
 begin 

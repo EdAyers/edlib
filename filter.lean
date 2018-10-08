@@ -1,5 +1,4 @@
-
-import .set .lattice
+import .set .lattice .order
 open set lattice
 structure filter (α:Type*) :=
 (sets : set (set α))

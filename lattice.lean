@@ -1,4 +1,4 @@
-import .set
+import .set .order
 set_option old_structure_cmd true -- stops errors for diamonds.
 
 universes u v
@@ -103,14 +103,7 @@ def is_minimal [has_initial α]  (a : α) : Prop := ∀ b : α, b < a → b = �
 def is_maximal [has_terminal α]  (a : α) : Prop := ∀ b : α, a < b → b = ⊤
 
 section order_dual
-def order_dual (α : Type*) := α
-instance (α : Type*) [has_le α] : has_le (order_dual α) := ⟨λ (x y : α), y ≤ x⟩
-instance (α : Type*) [po : partial_order α] : partial_order (order_dual α) :=
-{ le_refl := begin intros, apply le_refl end
-, le_trans := begin intros, apply le_trans, assumption, assumption end
-, le_antisymm := begin intros, apply @le_antisymm _ po, assumption, assumption end
-, ..(order_dual.has_le α)
-}
+
 instance [x : has_meet α] : has_join (order_dual α) := ⟨(@has_meet.meet _ x : α → α → α)⟩
 instance [x : has_join α] : has_meet (order_dual α) := ⟨(@has_join.join _ x : α → α → α)⟩
 instance [x : has_top α] : has_bot (order_dual α) := ⟨(⊤ : α)⟩

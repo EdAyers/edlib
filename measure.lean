@@ -92,17 +92,6 @@ namespace σ_algebra
                 d.subs B set.univ mB (d.univ) (λ _ _, ⟨⟩)
             )
             (λ f _ q, _)
-        -- begin
-        --     intros A mA,
-        --     cases mA, 
-        --     focus {apply ss, assumption},
-        --     focus {apply ss, apply p.empty},
-        --     focus {}
-
-        -- end
-        -- have h₀ : ∀ (B₁ B₂ ∈ 𝒟), B₁ ⊆ B₂ → ∀ (A ∈ 𝒜), (B₂ - B₁) ∩ A = (B₂ ∩ A) - (B₁ ∩ A) 
-        -- have h₁: ∀ (B ∈ 𝒟) (A ∈ 𝒜), B ∩ A ∈ 𝒟, from λ B mB A mA, _,
-        -- have h₂: ∀ (A B ∈ 𝒟), A ∩ B ∈ 𝒟, from _, 
         
 
 end σ_algebra
