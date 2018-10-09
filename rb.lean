@@ -57,14 +57,14 @@ def rbalS : node k α → k×α → node k α → node k α
 
 def ins_aux (key : k) (a : α) : node k α → node k α 
 |Leaf := Rd Leaf ⟨key,a⟩ Leaf
-|(Rd l v r) :=
-    if key < v.1 then Rd (ins_aux l) v r
-    else if key > v.1 then Rd l v (ins_aux r)
-    else Rd l ⟨key,a⟩ r
+|(Rd l v r) := -- l and r are both Black.
+    if key < v.1 then Rd (ins_aux l) v r -- [FIXME] `Leaf` is `Black`, but `ins_aux Leaf` is `Red`, but (Red (Red)) is not wf.
+    else if key > v.1 then Rd l v (ins_aux r) -- R
+    else Rd l ⟨key,a⟩ r -- R
 |(Bk l v r) :=
-    if key < v.1 then lbal (ins_aux l) v r
-    else if key > v.1 then rbal l v (ins_aux r)
-    else Bk l ⟨key,a⟩ r
+    if key < v.1 then lbal (ins_aux l) v r -- BR
+    else if key > v.1 then rbal l v (ins_aux r) --BR
+    else Bk l ⟨key,a⟩ r -- B
 
 def insert : k → α → node k α → node k α := 
     λ key x s, mk_black (ins_aux key x s)
@@ -255,20 +255,6 @@ lemma ordered.or {c l v r} : ordered (Node c l v r : node k α) → ordered r :=
 open ordered
 @[simp] def is_wf (t: node k α) :  Prop := (∃ n, is_rb t Black n) ∧ ordered t
 
-/- [TODO] 
-These things are way too tedious to work with manually proving.
-Instead I need to make a tactic which looks at the structure of lbal and automatically solves / emits subgoals for each case.
-What does this mean?
-- Figure out the cases of `l` and `r` that are needed to eliminate lbal. Do this recursively.
-- The goal is to rewrite the inside of `ordered(-)` so it has the form _Leaf_ or _Node_, because we know that this is going to be the only way of solving ordered.
-- Then break up ordered. The trick is knowing when you can stop because you have an assumption.
-- This is similar to how split-ifs works so I should take a look at how that is implemented.
-
-So, `split_matches lbal` takes the inductive definition of `lbal`, and keeps performing 'by induction' steps on the arguments to `lbal` until 
-the induction steps in `lbal`'s definition are all reduced.
-I think this is completely doable in a few day's work.
-
--/
 
 variables {key k₁ k₂ :k} {a:α} {v v₁ v₂ : k × α} {l r t : node k α} {c : col}
 
@@ -329,7 +315,6 @@ do
 meta def get_cases_candidate : expr → tactic expr := λ e,
 get_cases_candidate_single e <|> list.any_of (expr.get_app_args e) get_cases_candidate
 
-
 meta def recursion_cases : tactic unit :=
 do
      t ← target >>= instantiate_mvars,
@@ -364,6 +349,11 @@ meta def one_of : list (tactic unit) → tactic unit
 
 meta def apply_pexpr : pexpr → tactic unit :=
 λ p, ((to_expr p) >>= apply) $> ⟨⟩
+
+inductive growth : node k α → nat → Prop
+|stay {c n t} : is_rb t c n → growth t n
+|sprout_l {n l v r} : is_rb l Red n → is_rb r Black n → growth (Rd l v r) n
+|sprout_r {n l v r} : is_rb l Black n → is_rb r Red n → growth (Rd l v r) n
 
 lemma rbal_ind {P Q : node k α → Prop} {q : Q r}
     (c₁ : Π  {b c d w z}, Q(Rd (Rd b w c) z d) → P(Rd (Bk l v b) w (Bk c z d)))
@@ -400,7 +390,7 @@ lemma rbal_ind {P Q : node k α → Prop} {q : Q r}
 
 -- end
 
-lemma rbal_ordered (ol : ordered l) (vdl : v.1 ⋗ l) (rdv : v.1 ⋖ r) (or : ordered r) : ordered (rbal l v r) :=
+lemma rbal.ordered (ol : ordered l) (vdl : v.1 ⋗ l) (rdv : v.1 ⋖ r) (or : ordered r) : ordered (rbal l v r) :=
 begin
    apply rbal_ind, apply and.intro or rdv,
    focus {
@@ -442,10 +432,11 @@ lemma rbal_mem : (key ∈ r) → (key ∈ rbal l v r) := begin
     }
 end
 
-lemma rbal_rb {cl cr n} : is_rb l cl n → is_rb r cr n → ∃ c', is_rb (rbal l v r) c' (succ n) := 
+lemma rbal_rb {cl n} : is_rb l cl n → growth r n → ∃ c', is_rb (rbal l v r) c' (succ n) := 
 begin
- intros lrb rrb, apply @rbal_ind k _ _ _ _ _  (λ t, ∃ c', is_rb (t) c' (succ n)) (λ t, is_rb t cr n), apply rrb, 
- focus {intros, cases a, cases a_rb_l, },  
+ intros lrb rrg,
+ apply @rbal_ind k _ _ _ _ _  (λ t, ∃ c', is_rb (t) c' (succ n)) (λ t, growth t n), apply rrg, 
+ focus {intros, cases a, cases a_a, cases a_a_rb_l, split, apply is_rb.red_rb, apply is_rb.black_rb, assumption, cases a_a, assumption, apply is_rb.black_rb,    },  
  focus {intros, cases a, cases a_rb_r, },
  focus {existsi Black, apply is_rb.black_rb, assumption, assumption}
 end
@@ -459,11 +450,24 @@ match lt_trichotomy a b with
 |(or.inr (or.inr h)) := absurd h q
 end
 
-lemma lbal_mem : (key ∈ l) → (key ∈ lbal l v r) := sorry
-lemma lbal_rb {cl cr n} : is_rb l cl n → is_rb r cr n → ∃ c', is_rb (lbal l v r) c' (succ n) := sorry
+lemma lbal.ordered : ordered l → v.1 ⋗ l → v.1 ⋖ r → ordered r → ordered (lbal l v r) := sorry
+lemma lbal.mem : (key ∈ l) → (key ∈ lbal l v r) := sorry
+lemma lbal.rb {cl cr n} : is_rb l cl n → is_rb r cr n → ∃ c', is_rb (lbal l v r) c' (succ n) := sorry
 lemma ins_aux.mem : (k₁ ∈ ins_aux key a t) ↔ (k₁ ∈ t ∨ k₁ = key) := sorry
-lemma ins_aux.is_rb {n} : is_rb t c n → ∃ c', is_rb (ins_aux key a t) c' n := sorry
-lemma ins_aux.ordered : ordered t → ordered (ins_aux key a t) :=
+lemma ins_aux.is_rb {n} : is_rb t c n → ∃ c', is_rb (ins_aux key a t) c' n :=
+begin
+    intro rb,
+    induction rb with l v r n hl hr il ir l c₁ v r c₂ n hl hr il ir,
+    case rb.proofs.is_rb.leaf_rb {
+        simp [ins_aux], split,
+        apply is_rb.red_rb, all_goals {apply is_rb.leaf_rb},
+    },
+    case rb.proofs.is_rb.red_rb {
+        simp [ins_aux], split_ifs,
+        split, apply is_rb.red_rb,
+    }
+end
+lemma ins_aux.ordered :  ordered t → ordered (ins_aux key a t) :=
 begin
     intro o, 
     induction t with c l v r lq rq,
@@ -472,12 +476,13 @@ begin
     },
     case rb.node.Node {
         cases o,
-        have hl := lq o_ol,
-        have hr := rq o_or,
+        have hl := lq o_ol, clear lq,
+        have hr := rq o_or, clear rq,
         cases c,
+        all_goals {simp[ins_aux] },
         case rb.col.Red {
-            simp [ins_aux],
-            split_ifs, apply o_node,
+            split_ifs,
+            apply o_node,
             any_goals {assumption},
             focus {
                 intros k₁ ki,
@@ -496,11 +501,17 @@ begin
             apply o_node, any_goals {assumption}
         },
         case rb.col.Black {
-            simp [ins_aux], 
-
+            split_ifs, apply lbal.ordered, any_goals {assumption},
+            intros k₁ ki,  cases (ins_aux.mem.1 ki),
+            apply o_vdl _ h_1, subst h_1, assumption,
+            split_ifs, apply rbal.ordered, any_goals {assumption},
+            intros k₁ ki, cases (ins_aux.mem.1 ki),
+            apply o_rdv _ h_2, subst h_2, assumption,
+            split_ifs,
+            have e := eq_of_nlt h h_1, subst e,
+            apply o_node, any_goals {assumption} 
         }
     }
-
 end
 
 /- Now that I have worked this out, 
