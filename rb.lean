@@ -1,4 +1,4 @@
-import .order
+import .order .split_ifs
 
 namespace rb
 universes u v w
@@ -24,7 +24,6 @@ def mk_black : node k α → node k α
 def mk_red : node k α → node k α 
 |Leaf := Leaf
 |(Node _ l a r) := Node Red l a r
-
 
 @[simp] def lbal : node k α → k×α → node k α → node k α
 | (Rd (Rd a x b) y c) v r := Rd (Bk a x b) y (Bk c v r)
@@ -56,19 +55,19 @@ def rbalS : node k α → k×α → node k α → node k α
 | (Rd a v₁ (Bk b v₂ c)) v₃ r := Rd (lbal (mk_red a) v₁ b) v₂ (Bk c v₃ r)
 | l v r := Rd l v r /- impossible -/
 
-def ins_aux (key : k) (x : α) : node k α → node k α 
-|Leaf := Rd Leaf ⟨key,x⟩ Leaf
-|(Bk l v r) :=
-    if key < v.1 then lbal (ins_aux l) v r
-    else if key > v.1 then rbal l v (ins_aux r)
-    else Bk l ⟨key,x⟩ r
+def ins_aux (key : k) (a : α) : node k α → node k α 
+|Leaf := Rd Leaf ⟨key,a⟩ Leaf
 |(Rd l v r) :=
     if key < v.1 then Rd (ins_aux l) v r
     else if key > v.1 then Rd l v (ins_aux r)
-    else Rd l ⟨key,x⟩ r
+    else Rd l ⟨key,a⟩ r
+|(Bk l v r) :=
+    if key < v.1 then lbal (ins_aux l) v r
+    else if key > v.1 then rbal l v (ins_aux r)
+    else Bk l ⟨key,a⟩ r
 
 def insert : k → α → node k α → node k α := 
-λ key x s, mk_black (ins_aux key x s)
+    λ key x s, mk_black (ins_aux key x s)
 instance : has_insert (k×α) (node k α) := ⟨λ ⟨key,a⟩ t, insert key a t⟩ 
 
 /--Used to get the `append` method to be well-founded-/
@@ -251,6 +250,8 @@ infix ` ⋖ `: 50 := dominated_by
 inductive ordered : node k α → Prop
 |o_leaf {} : ordered (Leaf) 
 |o_node {c l} {v:k×α} {r} (ol:ordered l) (vdl :  v.1 ⋗ l) (rdv : v.1 ⋖ r) (or : ordered r) : ordered (Node c l v r)
+lemma ordered.ol {c l v r} : ordered (Node c l v r : node k α) → ordered l := begin intros, cases a, assumption end
+lemma ordered.or {c l v r} : ordered (Node c l v r : node k α) → ordered r := begin intros, cases a, assumption end
 open ordered
 @[simp] def is_wf (t: node k α) :  Prop := (∃ n, is_rb t Black n) ∧ ordered t
 
@@ -315,7 +316,7 @@ do
     -- hopefully, the last argument of the recursor is always the thing being recursed on.
     rec_arg ← pure $ expr.app_arg e,
     is_local ← pure $ expr.is_local_constant rec_arg,
-     trace fn_name,
+    -- trace fn_name,
     -- trace args,
     -- trace is_rec,
     -- trace rec_arg,
@@ -331,7 +332,7 @@ get_cases_candidate_single e <|> list.any_of (expr.get_app_args e) get_cases_can
 
 meta def recursion_cases : tactic unit :=
 do
-    t ← target >>= instantiate_mvars,
+     t ← target >>= instantiate_mvars,
      cand ← get_cases_candidate t,
      --trace cand,
      tactic.cases_core cand,
@@ -379,6 +380,25 @@ lemma rbal_ind {P Q : node k α → Prop} {q : Q r}
             apply_pexpr ```(c₃)  
         ]},
     end
+
+-- lemma ins_aux_ind {P Q : node k α → Prop} (q : Q t)
+--     (c₁ : P(Rd Leaf ⟨key,a⟩ Leaf))
+--     (c₂ : Π {l v r}, Q(Bk l v r) → key < v.1 → P(ins_aux key a l) → P(lbal (ins_aux key a l) v r))
+--     (c₃ : Π {l v r}, Q(Bk l v r) → key > v.1 → P(ins_aux key a r) → P(rbal l v (ins_aux key a r)))
+--     (c₄ : Π {l v r}, Q(Bk l v r) → key = v.1 → P(Bk l ⟨key,a⟩ r))
+--     (c₅ : Π {l v r}, Q(Rd l v r) → key < v.1 → P(ins_aux key a l) → P(Rd (ins_aux key a l) v r))
+--     (c₆ : Π {l v r}, Q(Rd l v r) → key > v.1 → P(ins_aux key a r) → P(Rd l v (ins_aux key a r)))
+--     (c₇ : Π {l v r}, Q(Rd l v r) → key = v.1 → P(Rd l ⟨key,a⟩ r))
+--     : P(ins_aux key a t) :=
+-- begin
+--   induction t with c l v r, apply c₁, cases c,
+--   simp [ins_aux],
+--   --expand ``ins_aux, simp, dsimp_target none [`id_rhs],
+--   focus {
+--       split_ifs, apply c₅ _ _ (t_ih_l _), repeat {assumption}, 
+--   }
+
+-- end
 
 lemma rbal_ordered (ol : ordered l) (vdl : v.1 ⋗ l) (rdv : v.1 ⋖ r) (or : ordered r) : ordered (rbal l v r) :=
 begin
@@ -432,9 +452,56 @@ end
 
 -- [TODO] repeat for lbal.
 
+lemma eq_of_nlt {a b : k} : (¬ a < b) → ¬(b < a) → a = b := λ p q,
+match lt_trichotomy a b with
+|(or.inl h) := absurd h p
+|(or.inr (or.inl h)) := h
+|(or.inr (or.inr h)) := absurd h q
+end
+
+lemma lbal_mem : (key ∈ l) → (key ∈ lbal l v r) := sorry
 lemma lbal_rb {cl cr n} : is_rb l cl n → is_rb r cr n → ∃ c', is_rb (lbal l v r) c' (succ n) := sorry
+lemma ins_aux.mem : (k₁ ∈ ins_aux key a t) ↔ (k₁ ∈ t ∨ k₁ = key) := sorry
 lemma ins_aux.is_rb {n} : is_rb t c n → ∃ c', is_rb (ins_aux key a t) c' n := sorry
-lemma ins_aux.ordered : ordered t → ordered (ins_aux key a t) := sorry
+lemma ins_aux.ordered : ordered t → ordered (ins_aux key a t) :=
+begin
+    intro o, 
+    induction t with c l v r lq rq,
+    case rb.node.Leaf {
+        simp [ins_aux], apply o_node, assumption, apply dominates.leaf, apply dominated_by.leaf, assumption,
+    },
+    case rb.node.Node {
+        cases o,
+        have hl := lq o_ol,
+        have hr := rq o_or,
+        cases c,
+        case rb.col.Red {
+            simp [ins_aux],
+            split_ifs, apply o_node,
+            any_goals {assumption},
+            focus {
+                intros k₁ ki,
+                have h₂ := ins_aux.mem.1 ki, cases h₂,
+                apply o_vdl, assumption,
+                cases h₂, assumption,
+            },
+            split_ifs, focus {
+                apply o_node, any_goals {assumption}, intros k₁ ki,
+                cases (ins_aux.mem.1 ki),
+                apply o_rdv, assumption,
+                cases h_2, assumption
+            },
+            split_ifs,
+            have e := eq_of_nlt h h_1, subst e, 
+            apply o_node, any_goals {assumption}
+        },
+        case rb.col.Black {
+            simp [ins_aux], 
+
+        }
+    }
+
+end
 
 /- Now that I have worked this out, 
 I am 100% sure that I can write some automation for this, probably in the same vain as auto2
