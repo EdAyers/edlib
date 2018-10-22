@@ -1,3 +1,5 @@
+# How `meta` works. Part 2: Induction
+
 # Tactics for dealing with inductive datatypes
 
 - `cases_core`

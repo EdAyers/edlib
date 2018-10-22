@@ -1,5 +1,5 @@
 
-# How `meta` works. Part 2: Elaboration
+# How `meta` works. Part 3: Elaboration
 
 THIS SECTION IS STILL A WORK IN PROGRESS AND SO IS INCOHERENT.
 
