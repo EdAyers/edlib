@@ -53,5 +53,7 @@ ext $ λ a, ⟨λ h, h univ $ or.inl rfl, λ h A H, or.rec_on H (λ p, eq.symm p
 def Inter_compl {s : ι → set α} : (⋂ i, s i) = - (⋃ i, - (s i))
 := set.ext $ λ a, ⟨λ h₁ ⟨i,h₂⟩, h₂ (h₁ i),λ h₁ i, classical.by_contradiction (λ h₂, h₁ ⟨i,h₂⟩)⟩
 
+def function (dom : set α) (cod : set α) : Type u := {x // x ∈ dom} → {y // y ∈ cod}
+
 
 end set

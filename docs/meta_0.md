@@ -4,7 +4,10 @@ I am going to assume that readers are familiar with dependent type theory and pr
 But not with how these things are implemented on an actual computer.
 I will also assume that the reader is comfortable with functional programming concepts such as `monad`,  `functor`, `alternative` and `applicative`.
 The reader should also be aware that I am a beginner to Lean, but not to the internals of theorem provers, so it is very likely that this docuement contains misleading errors.
-Some of the text is copied from docstrings in the Lean library or from answers on Zulip. I would like to thank Mario Carneiro, Leo de Moura, Gabriel Ebner, Simon Hudon, Sebastian Ullrich, Kevin Buzzard, Rob Lewis and everyone else in the Lean community chat for helping me out.
+Most of the text is copied from docstrings in the Lean library or from answers on Zulip.
+Hence this document is best thought of as a form of benign plagarism.
+I would like to thank Mario Carneiro, Leo de Moura, Gabriel Ebner, Simon Hudon, Sebastian Ullrich, Kevin Buzzard, Rob Lewis and everyone else in the Lean community chat for helping me out.
+
 Finally, I am trying to write this for a mathematician who wants to gain an understanding of what is going on under the hood rather than for pro type theorists. So I will make lots of simplifications and analogies that should really come braced with a page of caveats and footnotes. If you want to get nitpicky then you will just have to study actual textbooks, papers and source-code on the topic.
 
 ## What is a type theory?
@@ -19,7 +22,8 @@ Suppose we want come up with a new type theory `T`. This is composed of:
   ----------
   s $ t : B
   ```
-  Type theory papers are littered with pages and pages of these inference rules. They define what it means for a term to be well-typed. Mario has written a doc containing the [inference rules for Lean](https://github.com/digama0/lean-type-theory/releases/download/v0.21/main.pdf).
+  Type theory papers are littered with pages and pages of these inference rules. 
+  They define what it means for a term to be well-typed. Mario has written a doc containing the [inference rules for Lean](https://github.com/digama0/lean-type-theory/releases/download/v0.21/main.pdf).
 - Term reductions. These are some transformations that one can perform on terms to do computation.
   So for example we have β-reduction which says that `(λ x, T) $ y` reduces to `T` where all occurrences of `x` are substituted with `y`.
   Typically, the reductions are reduction of lambdas, let bindings and reduction of the `rec` functions on the various inductive types such as ℕ and `prod`. See the section on reduction rules in the next part.
@@ -32,7 +36,7 @@ This is what Lean does for a version of type theory called the _Calculus of Indu
 The idea of logic is to construct mathematical structures within which we can do mathematics.
 In type theory, the structures are trees of terms which obey the given inference rules.
 
-But in order to construct these objects, we need to do activities that are _outside_ the structure: deciding what type theory to use, writing the code that manipulates trees of terms, applying reductions to terms, parsing strings into terms, checking that the inference rules are being applied correctly and so on.
+But in order to construct these objects, we need to do activities that are _outside_ the structure: deciding what type theory to use, writing the code that manipulates trees of terms, applying reductions to terms, parsing strings of text into terms, checking that the inference rules are being applied correctly and so on.
 We call these __meta-level__ activities. Anything to do with the mathematics: proving a theorem, writing a definition, defining an inductive type ... is called __object-level__.
 
 In most systems, the meta-level activities are done in a different language to the one that we use to do mathematics. In Isabelle, the meta-level language is ML and Scala. In Coq, it's OCAML. In AGDA it's Haskell. In Lean, most of the meta-level code is written in C++.
@@ -53,19 +57,19 @@ Here I will introduce the main meta-level constructs that Lean exposes to you fr
 ### universe level
 
 To avoid paradoxes (think; "does the type of all types contain itself?"), we have an infinite hierarchy of type universes.
-You can think of a universe level as just a natural number, but remember that these numbers are at the meta level. That means that the numbers are used to talk about things within Lean, rather than being an object of study itself. Here is the definition, given in `library/init/meta/level.lean` in the Lean codebase with my comments
+You can think of a universe level as just a natural number. But remember that these numbers are at the meta level. So you can't perform induction on them etc. That means that the numbers are used to talk about things within Lean, rather than being an object of study itself. Here is the definition, given in `library/init/meta/level.lean` in the Lean codebase with my comments
 
 ```lean
 meta inductive level
 |zero : level                    -- The zeroth universe. This is also called `Prop`.
 |succ : level → level           -- The successor of the given universe
 |max  : level → level → level  -- The maximum of the given two universes
-|imax : level → level → level  -- Same as `max`, except that `imax u zero` reduces to `zero`. This is used to make sure `Π x, t` is a proposition if `t` is too.
-|param : name → level           -- A named parameter universe. Eg, at the beginning of a Lean file you would write
-|mvar : name → level            -- A metavariable, to be explained later.
+|imax : level → level → level  -- Same as `max`, except that `imax u zero` reduces to `zero`. This is used to make sure `Π x, t` is a `Prop` if `t` is too.
+|param : name → level           -- A named parameter universe. Eg, at the beginning of a Lean file you would write `universe u`. `u` is a parameter 
+|mvar : name → level            -- A metavariable, to be explained later. It is a placeholder universe that Lean is expected to guess later.
 ```
 
-Universes can be thought of as a bookkeeping exercise to stop the paradoxes and Lean does a good job of hiding them in most circumstances.
+Universes can be thought of as a tedious-but-necessary bookkeeping exercise to stop the paradoxes and Lean does a good job of hiding them from the user in most circumstances.
 Because of this, I will try my hardest to omit details about type universes for the rest of this document.
 
 ### environments, declarations and names
@@ -104,7 +108,9 @@ Declarations can also be tagged with things called `attributes`. These are bits 
 We can use backticks `` ` `` to access names from Lean objects.
 
 * `` `my.name`` is the way to refer to a name. It is essentially a form of string quoting; no checks are done besides parsing dots into namespaced names
-* ``` ``some ``` does name resolution at parse time, so it expands to `` `option.some`` and will error if the given name doesn't exist
+* ``` ``some ``` does name resolution at parse time, so it expands to `` `option.some``. It will error if the given name doesn't exist.
+
+[TODO] How namespaces work. Eg exporting, importing.
 
 ## Expressions
 
@@ -122,7 +128,7 @@ meta inductive expr
 | elet  : name → expr → expr → expr → expr -- A let expression.
 | ... some other stuff to be introduced later ...
 ```
-I will talk about `binder_info` later.
+
 We can represent any Lean term using the above definition. 
 Multiple arguments are done using _partial application_: `f x y ~~> app (app f x) y`.
 
@@ -130,10 +136,10 @@ Multiple arguments are done using _partial application_: `f x y ~~> app (app f x
 
 Consider the following lambda expression ` (λ f x, f x x) (λ x y, x + y) 5`, we have to be very careful when we reduce this, because we get a clash in the  variable `x`.
 To avoid variable name-clash carnage, `expr`s use a nifty trick called __de-Bruijn indexes__.
-In de-Bruijn indexing, each variable bound by a `lam` or a `pi` is converted into a number `n`. 
+In de-Bruijn indexing, each variable bound by a `lam` or a `pi` is converted into a number `#n`. 
 The number says how many binders up the `expr` tree we should look to find the binder which binds this variable.
 So our above example would become (putting wildcards `_` in the type arguments for now for brevity):
-`app (app (lam "f" _ (lam "x" _ (app (app [1] [0]) [0]))) (lam "x" _ (lam "y" _ (app (app plus [1]) [0])))) five`
+``app (app (lam `f _ (lam `x _ (app (app #1 #0) #0))) (lam `x _ (lam `y _ (app (app plus #1) #0)))) five``
 Now we don't need to rename variables when we perform β-reduction. We also really easily check if two `expr`s containing bound expressions are equal.
 
 This is why the signature of the `var` case is `nat → expr` and not `name → expr`.
@@ -147,8 +153,8 @@ As fun as it would be to type out `expr`s in terms of `var`, `lam`, etc and doin
 Lean provides a syntax to quickly convert any Lean expression into an `expr`.
 
 * `` `(my expr)`` constructs an expression at parse time, resolving what it can in the current (of the tactic) namespace
-* ``` ``(my pexpr)``` constructs a pre-expression at parse time, resolving in the current (of the tactic) namespace
-* ```` ```(my pexpr)```` constructs a pexpr, but defers resolution to run time (of the tactic), meaning that any references will be resolved in the namespace of the begin end block of the user, rather than the tactic itself
+* ``` ``(my pexpr)``` constructs a pre-expression (an expression where implicit arguments have not been filled in) at parse time, resolving in the current (of the tactic) namespace
+* ```` ```(my pexpr)```` constructs a pexpr, but defers resolution to run time (of the tactic), meaning that any references will be resolved in the namespace of the begin end block of the user of the tactic, rather than the tactic itself
 
 The process of taking a string of unicode characters and converting them into a Lean expression is called _elaboration_. I will come back to elaboration.
 
@@ -164,7 +170,7 @@ Each `lam` or `pi` binder comes with a `binder_info` argument. This can be set t
 - `implicit` -- an implicit argument (arguments in curly braces)
 - `strict_implicit` -- [TODO] What is the difference between `implicit` and `strict_implicit`?
 - `inst_implicit` -- An implicit typeclass instance. These are the things in the square brackets such as `[group G]`.
-- `aux_decl` -- [TODO] I don't know what this one does.
+- `aux_decl` -- Auxillary definitions are helper methods that Lean generates. The most common source of them is from `match` expressions.
 
 ## Constructing valid `expr`s
 

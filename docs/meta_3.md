@@ -1,7 +1,7 @@
 
-# How `meta` works. Part 3: Elaboration
+# How `meta` works. Part 3: Turning your lazy scrawlings into Pillars Of Divine Truth with Elaboration and the Equation Compiler
 
-THIS SECTION IS STILL A WORK IN PROGRESS AND SO IS INCOHERENT.
+THIS SECTION IS STILL A WORK IN PROGRESS AND SO IS INCOHERENT AF.
 
 Now that we have seen how tactics work. We can discuss elaboration. Recall that elaboration is the process of filling in all of the implicit arguments and typeclass instances that the user didn't want to write down.
 
@@ -41,6 +41,9 @@ This is where `tactics` come in.
 
 Elaboration is a special tactic built in to Lean that is used to turn strings of Lean code into `expr`s.
 
+What is the difference between `pexpr` and `expr`?
+The big difference is whether implicit arguments are present.
+For example the equality `x = x` is represented in `expr ff` as `app (app (const `eq _) x) x` while in `expr tt` it is represented as `app (app (app (const `eq _) t) x) x` (one more argument).
 
 
 In order for an `expr` to be accepted by Lean, it has to be __elaborated__.

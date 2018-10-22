@@ -354,7 +354,16 @@ inductive growth : node k α → nat → Prop
 |stay {c n t} : is_rb t c n → growth t n
 |sprout_l {n l v r} : is_rb l Red n → is_rb r Black n → growth (Rd l v r) n
 |sprout_r {n l v r} : is_rb l Black n → is_rb r Red n → growth (Rd l v r) n
-
+/- We have to consider way more cases than the written definition 
+    of `rbal` because the equation compiler has to transform the match expression into a series of
+    `cases_on` calls which is less flexible than match.
+    As far as I can tell these are the solutions to avoiding having to do all of the cases
+    - Write a `rbal_ind` helper lemma: like below.
+    - Write some really clever automation that reduces the problem to a few cases for you.
+    - Write your proofs inline with the function - 
+        this tends to obfuscate what your underlying data transformation is 
+        and makes everything quite bloaty. It is very hard to pull off.
+        -/
 lemma rbal_ind {P Q : node k α → Prop} {q : Q r}
     (c₁ : Π  {b c d w z}, Q(Rd (Rd b w c) z d) → P(Rd (Bk l v b) w (Bk c z d)))
     (c₂ : Π  {b c d w z}, Q(Rd b w (Rd c z d)) → P(Rd (Bk l v b) w (Bk c z d)))
@@ -434,11 +443,11 @@ end
 
 lemma rbal_rb {cl n} : is_rb l cl n → growth r n → ∃ c', is_rb (rbal l v r) c' (succ n) := 
 begin
- intros lrb rrg,
- apply @rbal_ind k _ _ _ _ _  (λ t, ∃ c', is_rb (t) c' (succ n)) (λ t, growth t n), apply rrg, 
- focus {intros, cases a, cases a_a, cases a_a_rb_l, split, apply is_rb.red_rb, apply is_rb.black_rb, assumption, cases a_a, assumption, apply is_rb.black_rb,    },  
- focus {intros, cases a, cases a_rb_r, },
- focus {existsi Black, apply is_rb.black_rb, assumption, assumption}
+    intros lrb rrg,
+    apply @rbal_ind k _ _ _ _ _  (λ t, ∃ c', is_rb (t) c' (succ n)) (λ t, growth t n), apply rrg, 
+    focus {intros, cases a, cases a_a, cases a_a_rb_l, split, apply is_rb.red_rb, apply is_rb.black_rb, assumption, cases a_a, assumption, apply is_rb.black_rb,    },  
+    focus {intros, cases a, cases a_rb_r, },
+    focus {existsi Black, apply is_rb.black_rb, assumption, assumption}
 end
 
 -- [TODO] repeat for lbal.

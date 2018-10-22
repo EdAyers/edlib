@@ -6,3 +6,5 @@ So I'm going to be copying mathlib code a lot.
 
 I am especially interested in learning how topology and filters work.
 And how to define the real numbers.
+
+☺

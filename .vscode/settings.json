@@ -1,0 +1,6 @@
+{
+    "lean.input.customTranslations": {
+        "foo" : "☼",
+        "nat" : "∭"
+    }
+}

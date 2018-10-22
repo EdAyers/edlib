@@ -11,7 +11,6 @@ class σ_algebra {E : Type u} (ℰ : set (set E)) : Prop :=
 (compl : ∀ A ∈ ℰ, -A ∈ ℰ)
 (union : ∀ (As : ℕ → set E) (p : ∀ n, As n ∈ ℰ), (⋃ n, As n) ∈ ℰ)
 
-
 namespace σ_algebra
     variables {ℰ : set (set E)} [σ_algebra ℰ]
     lemma inter : ∀ (As : ℕ → set E) (p : ∀ n, As n ∈ ℰ), (⋂ n, As n) ∈ ℰ :=
