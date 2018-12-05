@@ -166,11 +166,20 @@ Lean supports some extra information about binders that lets us write more conci
 The two main mechanisms that Lean uses are __implicit arguments__ and __typeclass instances__.
 
 Each `lam` or `pi` binder comes with a `binder_info` argument. This can be set to
-- `default` -- just a normal argument
-- `implicit` -- an implicit argument (arguments in curly braces)
-- `strict_implicit` -- [TODO] What is the difference between `implicit` and `strict_implicit`?
-- `inst_implicit` -- An implicit typeclass instance. These are the things in the square brackets such as `[group G]`.
-- `aux_decl` -- Auxillary definitions are helper methods that Lean generates. The most common source of them is from `match` expressions.
+- `default` -- `(x : α)`
+- `implicit` --  `{x : α}`
+- `strict_implicit` -- `⦃x : α⦄`
+- `inst_implicit` -- `[x : α]`.
+- `aux_decl` -- Auxillary definitions are helper methods that Lean generates. `aux_decl` is used for `_match`, `_fun_match`, `_let_match` and the self reference that appears in recursive pattern matching.
+
+The difference between `{}` and `⦃⦄` is how implicit arguments are treated that are *not* followed by explicit arguments.  
+`{}` arguments are applied eagerly, while `⦃⦄` arguments are left partially applied:
+```lean
+def foo {x : ℕ} : ℕ := x
+def bar ⦃x : ℕ⦄ : ℕ := x
+#check foo -- foo : ℕ
+#check bar -- bar : Π ⦃x : ℕ⦄, ℕ
+```  
 
 ## Constructing valid `expr`s
 

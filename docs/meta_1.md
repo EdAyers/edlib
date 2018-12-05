@@ -141,23 +141,6 @@ meta constant has_attribute : name → name → tactic nat
 - `get_goals : tactic (list expr)`. Dump the list of metavariables which are goals right now.
 - [TODO] more to come.
 
-
-### Goal tagging
-Goals can be tagged with a list of arbitrary names.
-```lean
-/-- Goals can be tagged using a list of names. -/
-def tag : Type := list name
-/-- Enable/disable goal tagging -/
-meta constant enable_tags (b : bool) : tactic unit
-/-- Return tt iff goal tagging is enabled. -/
-meta constant tags_enabled : tactic bool
-/-- Tag goal `g` with tag `t`. It does nothing is goal tagging is disabled.
-    Remark: `set_goal g []` removes the tag -/
-meta constant set_tag (g : expr) (t : tag) : tactic unit
-/-- Return tag associated with `g`. Return `[]` if there is no tag. -/
-meta constant get_tag (g : expr) : tactic tag
-```
-
 ### Assorted tactics for inspecting and manipulating expressions
 
 A lot of the time you shouldn't use the `expr`-making equipment in the `expr` namespace, but instead use the ones found in `tactic`. This is because judging whether an `expr` is valid depends on the context which only the tactic state can know about. 
@@ -337,19 +320,16 @@ Let's write out all of the fundamental reductions we have in type theory. We wri
 - __α-equivalence__ is renaming bound variables. Thanks to de-Bruijn indices this is done automatically.
 - __β-reduction__ is `(λ x : a, b) c ~~> b[x/c]`
 - __δ-reduction__ is replacing a constant with it's definition.
-- __ζ-reduction__ is reduction of `let` bindings: `let x : a := b in c ~~> c[x/b]`.
-- __η-equivalence__ is the rule that  `(λ x, f x)` can be reduced to `f`.
+- __ζ-reduction__ is reduction of `let` bindings: `let x : a := b in c ~~> c[x/b]`. Perform it on an expression with the `zeta` or `head_zeta` tactic.
+- __η-equivalence__ is the rule that  `(λ x, f x)` can be reduced to `f`. Perform it with the `eta` or `head_eta` tactic. 
+    You can also use the tactic `head_eta_expand` to do η-reduction backwards. Eg; `f` is converted to `(λ x, f x)`. If `f` isn't a function then it just returns `f`.
 - __ι-reduction__ is reducing recursors on inductive datatypes: for example `nat.rec i r (succ n) ~~> r n (nat.rec i r n)` and `nat.rec i r 0 ~~> i`. Reducing any recursively defined function.
 - __proof-irrelevance__ if `P : Prop` and `a b : P`, then `a` is equivalent to `b`.
 
 Interestingly, ι-reduction and proof-irrelevance together make definitional equality undecidable. But only cases which we don't really care about are undecidable so it's ok. See section 3.7 of the [Lean Reference Manual](https://leanprover.github.io/reference/lean_reference.pdf).
 
-[TODO] How exactly do the following fundamental tactics work?
-- `zeta`
-- `head_eta_expand`
-- `head_beta_expand`
-- `head_eta`
-- `head_zeta`
+You can get Lean to do a bit of these
+- 
 
 ### What is WHNF?
 

@@ -5,3 +5,10 @@ A list of things that I want to cover in this series.
 - Handy tricks:
     + `some x <- abc | fail "a failure message"` syntax
     + [TODO] what does the `parameter/s` keyword do?
+
+There are three files that are important but which desperately need documentation:
+- `simp_tactic.md`
+- `match_tactic.md`
+- `rewrite_tactic.md`
+
+
