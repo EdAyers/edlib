@@ -72,7 +72,7 @@ Eg, I would really like to use the simplifier to expand the definition of a recu
 
 <!-- [TODO]
 
-- How E-matching works in general. Read up in TRWAAT and HAR, Bohua also covers it well.
+- How E-matching works in general. Read up in TRWAAT and HAR, Bohua also covers it well. Leo's paper 'efficient E-matching' does a good job.
 - What is SMT?
 - Lean is more complicated because of ITT and `eq` vs `heq` etc.
 - The important thing to stress is that they are not magic.

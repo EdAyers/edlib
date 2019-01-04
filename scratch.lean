@@ -1,6 +1,16 @@
-/- Y combinator -/
 
+meta def hello := con
 
+namespace floaties
+/- I added a `float` VM component. -/
+    open native
+    meta def x : float := 199
+    #eval -x ^ (3 : float)
+    #eval (199 / 400 : float) -- outputs 0.4975
+    #eval ((23.45 : float) = (23.45 : float) : bool)
+
+end floaties
+∀  ∀l  αll  
 variables {α β : Type}
 meta def Y {α : Type} : (α → α) → α | f := f (Y f)
 

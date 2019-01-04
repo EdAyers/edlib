@@ -10,6 +10,7 @@ I would like to thank Mario Carneiro, Leo de Moura, Gabriel Ebner, Simon Hudon, 
 
 Finally, I am trying to write this for a mathematician who wants to gain an understanding of what is going on under the hood rather than for pro type theorists. So I will make lots of simplifications and analogies that should really come braced with a page of caveats and footnotes. If you want to get nitpicky then you will just have to study actual textbooks, papers and source-code on the topic.
 
+
 ## What is a type theory?
 
 Suppose we want come up with a new type theory `T`. This is composed of:

@@ -333,7 +333,7 @@ You can get Lean to do a bit of these
 
 ### What is WHNF?
 
-'WHNF' stands for "weak head normal form". This basically means "apply the minimal amount of reductions so that the root of the `expr` can't be reduced further. Often this is less work than fully reducing the expression and often we only care what the root looks like anyway.
+'WHNF' stands for "weak head normal form". This basically means "apply the minimal amount of reductions so that the root of the `expr` can't be reduced further". Often this is less work than fully reducing the expression and often we only care what the root looks like anyway.
 There is [a stack overflow answer](https://stackoverflow.com/questions/6872898/haskell-what-is-weak-head-normal-form) that explains WHNF well. Finding the WHNF is decidable but in general but can take arbitrarily long to compute.
 You can put an expression in WHNF using the `whnf` tactic. You can see this used in the `intro` tactic.
 

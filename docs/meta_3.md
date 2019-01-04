@@ -1,7 +1,7 @@
 
 # How `meta` works. Part 3: Turning your lazy scrawlings into Pillars Of Divine Truth with Elaboration and the Equation Compiler
 
-THIS SECTION IS STILL A WORK IN PROGRESS AND SO IS INCOHERENT AF.
+THIS SECTION IS STILL A WORK IN PROGRESS AND SO IS INCOHERENT.
 
 Now that we have seen how tactics work. We can discuss elaboration. Recall that elaboration is the process of filling in all of the implicit arguments and typeclass instances that the user didn't want to write down.
 
