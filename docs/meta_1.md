@@ -5,16 +5,16 @@
 I would first like to remind everyone that I have massively simplified how Lean actually works to the point that the Lean developers will cringe when they read this.
 My goal is to give a kind of working abstraction that tactic writers can use to reason about how Lean will behave.
 
-Suppose that we are trying to construct a valid `expr` of a certain type `T` using tactics. If `T : Prop`, then this is the same task as proving the statement `T`. 
+Suppose that we are trying to construct a valid `expr` of a certain type `T` using tactics. If `T : Prop`, then this is the same task as proving the statement `T`.
 We might start by writing (say):
 ```lean
-lemma my_lemma (p q r : Prop) : (p → q → r) → (p → q) → p → q × r := 
+lemma my_lemma (p q r : Prop) : (p → q → r) → (p → q) → p → q × r :=
 begin
   <cursor goes here>
 end
 ```
 
-At this point, if you open the _Display Goal_ viewer in your editor, you will see:  
+At this point, if you open the _Display Goal_ viewer in your editor, you will see:
 ```lean
 p q r : Prop
 ⊢ (p → q → r) → (p → q) → p → q × r
@@ -27,23 +27,23 @@ These holes are called __metavariables__, a metavariable is an `expr` that will 
 Another new concept we need are __local constants__. These are all of the things to the left of the `⊢` in the tactic state. In our case `p`,`q` and `r`. Local constants are the same as regular `const` `expr`s, but they only exist in our current scope.
 
 ```lean
-inductive expr := 
+inductive expr :=
 | ... stuff from before ...
-|mvar (pretty_name : name) (unique_name : name) (type : expr) : expr
-|local_const (pretty_name : name) (unique_name : name) (type : expr) : expr
+|mvar (pretty_name : name) (unique_name : name) (bi : binder_info) (type : expr) : expr
+|local_const (pretty_name : name) (unique_name : name) (bi : binder_info) (type : expr) : expr
 ```
-([TODO] should I add `binder_info`?)
-Note how `mvar`  has a `type` argument. That means that we can run an `expr` containing metavariables through the kernel type-checker, and it will still be able to say what the type of the `expr` is, but it will not count as a valid `expr` until all of the `mvar`s are replaced with other valid `expr`s of the correct type. The type argument on the `mvar` may _itself_ contain other `mvars`. 
+Note how `mvar`  has a `type` argument. That means that we can run an `expr` containing metavariables through the kernel type-checker, and it will still be able to say what the type of the `expr` is, but it will not count as a valid `expr` until all of the `mvar`s are replaced with other valid `expr`s of the correct type. The type argument on the `mvar` may _itself_ contain other `mvars`.
 
 The `pretty_name` is what you see in the output window, the `unique_name` is used internally to uniquely identify the `mvar` or `local_const`. Lean has both names because the unique names would make the output window look cluttered.
 
-So, when you plonk your cursor in the `begin` block. Lean makes a `tactic_state`. The `tactic_state` is comprised of the following pieces of data: (in Lean3's C++, the place to look at is `src/library/tactic/tactic_state.h`)
+So, when you plonk your cursor in the `begin` block. Lean makes a `tactic_state`.
+The `tactic_state` is comprised of the following pieces of data: (in Lean3's C++, the place to look at is `src/library/tactic/tactic_state.h`)
 - The __environment__. In our example it would be the environment created by all of the Lean code before this `lemma`.
 - A __local context__. To be discussed below.
 - A __metavariable context__. To be discussed below.
 - An `expr` called the __result__, that depends on the metavariables and local constants given in the respective contexts above. This is usually hidden from the user.
 - A list of __goals__, these are just a selection of metavariables from the context that we particularly care about. We refer to the head of this list to be the __main goal__.
-- Some nitpicky settings that I won't talk about here. There are also some special mechanisms for typeclasses that I will gloss over. [TODO] `set_options`, `get_options`
+- Some nitpicky settings that I won't talk about here. There are also some special mechanisms for typeclasses that I will gloss over. [TODO] `set_options`, `get_options`, `cache`
 
 ### The local context
 
@@ -121,35 +121,32 @@ meta constant unset_attribute : name → name → tactic unit
 meta constant has_attribute : name → name → tactic nat
 ```
 
-### [TODO] I still have no idea what these ones do:
+### [TODO]
 
-- `save_type_info`
-- `save_info_thunk`
+- `save_type_info`, `save_info_thunk` are used to customise the message that is sent to the interactive window.
 - `kdepends_on`
-- `kabstract`
-- `unfreeze_local_instances`
-- `frozen_local_instances`
-- `subst_core`
+- `kabstract e t` stands for "keyed abstract". All occurrences of the term `t` in `e` are replaced with a de bruijn variable using keyed matching.
+- `subst_core` [TODO]
 
 ### Assorted tactics for figuring out what the state is doing.
 
 - `get_local : name → tactic expr`. Lookup the provided `name` in the local context and return the corresponding `local_const` expression.
 - `resolve_name : name → pexpr`. Resolve a name using the current local context, environment, aliases, etc.
 - `result : tactic expr`. Gets the result of the tactic state.
-- `target : tactic expr`. Take the first goal in the goal list and look up the type of the metavariable. 
+- `target : tactic expr`. Take the first goal in the goal list and look up the type of the metavariable.
 - `local_context : tactic (list expr)`. Dump the local context into a list. The expressions in the list are all `local_const`s.
 - `get_goals : tactic (list expr)`. Dump the list of metavariables which are goals right now.
 - [TODO] more to come.
 
 ### Assorted tactics for inspecting and manipulating expressions
 
-A lot of the time you shouldn't use the `expr`-making equipment in the `expr` namespace, but instead use the ones found in `tactic`. This is because judging whether an `expr` is valid depends on the context which only the tactic state can know about. 
+A lot of the time you shouldn't use the `expr`-making equipment in the `expr` namespace, but instead use the ones found in `tactic`. This is because judging whether an `expr` is valid depends on the context which only the tactic state can know about.
 
 - `infer_type : expr → tactic expr` figure out the type of the given expr using the kernel's typechecker.
 - ``get_unused_name (n : name := `_x) (i : option nat := none) : tactic name`` returns `n` unless something already has name `n` in the context, in which case it returns `n_X` where `X` is the first natural number such that this name isn't taken. You can also explicitly pass a number using the `i` argument. `get_unused_name` will _only_ look for clashing names in the local context. So doing ``get_unused_name `x`` twice will not return `x` then `x_1`.
 - `eval_expr : Π α : Type [reflected α], expr → tactic α` tries to typecheck the given `expr`, and if it's `α` then it returns `α`. So this tactic kind of does the same job as anti-quotations.  [TODO] what is the `reflected α` typeclass doing? I don't understand
 - `mk_app` and friends. `mk_app fn args transparency : tactic expr` looks at the type signature for `fn` and tries to match each of the `args` with an arg of `fn` and makes metavariables for the arguments it can't figure out. The exact mechanics of matching and transparency are discussed later.
-- `to_expr : pexpr → tactic expr`. Basically tries to fill in  
+- `to_expr : pexpr → tactic expr`. Basically tries to fill in
 - `type_check` Type check the given expr with respect to the current goal. [TODO] what does "with respect to the current goal" mean?
 
 ### fun_info
@@ -172,7 +169,7 @@ Then the `get_fun_info f` tactic will return a `fun_info` object, which has fiel
 
 [TODO] Does `get_fun_info` work when it has already been applied?
 
-[TODO] I don't understand subsingletons. 
+[TODO] I don't understand subsingletons.
 What is a subsingleton? It seems to be any type which is isomorphic to a member of Prop. Ie, it's either uninhabited or has one member.
 - `get_subsingleton_info`
 - `get_spec_prefix_size`
@@ -186,7 +183,7 @@ What is a subsingleton? It seems to be any type which is isomorphic to a member 
 ### Tactics for printing stuff.
 
 - `format_result`
-- 
+-
 [TODO] the `format` type.
 
 - [TODO] I can't figure out the difference between `format_result >>= trace`, `trace_result` and `do { r ← result, s ← read, return (format_expr s r) }`, even with the help of `format_result`s docstring. I want an example.
@@ -207,9 +204,9 @@ The `intro_core : name → tactic expr` tactic is used to 'unwind' binders in go
 You should already know intuitively what `intro_core` does. But here is the explicit routine for `intro_core n`:
 - Look at the first metavariable `M` in `goals` (the main goal) and look up its `type : expr` in the metavariable context.
 - If `type` has the form `pi _ e₁ e₂`, then:
-  + add a fresh local constant declaration with name `n` (make a fresh unique_name `n'`) and type `e₁` to the context. 
+  + add a fresh local constant declaration with name `n` (make a fresh unique_name `n'`) and type `e₁` to the context.
   + Instantiate `e₂` with `local_const n n' e₁` to get `e₃`.
-  + Make a fresh metavariable `M'` with type `e₃`. 
+  + Make a fresh metavariable `M'` with type `e₃`.
   + Assign `lam n e₁ M'` to `M`
   + Replace `M` by `M'` in `goals`.
   + Return the new `local_const`.
@@ -227,9 +224,9 @@ Here is an example:
 
 ```lean
 open tactic
-lemma my_lemma (p q r : Prop) : 
-    (p → q → r) → (p → q) → p → q ∧ r := 
-begin 
+lemma my_lemma (p q r : Prop) :
+    (p → q → r) → (p → q) → p → q ∧ r :=
+begin
     intro_core `h₁,
     sorry
 end
@@ -240,7 +237,7 @@ theorem my_lemma : ∀ (p q r : Prop), (p → q → r) → (p → q) → p → q
 -/
 ```
 
-We can also use `intron : nat → tactic unit` which just `intro_core` applied `n` times. `intron` will guess the names based on the name given in the binder. 
+We can also use `intron : nat → tactic unit` which just `intro_core` applied `n` times. `intron` will guess the names based on the name given in the binder.
 If the name is already taken in the local context then it will append `_1` (unless `..._1` is taken, in which case `..._2` etc).
 Note that since `p → q` is sugar for `Π a : p, q`, intros will very commonly give you the name `a`, `a_1`, `a_2` etc which can make the names look a little tedious.
 
@@ -257,8 +254,8 @@ If there are other local constants that depend on `c`, these are also reverted. 
 Example:
 ```lean
 open tactic
-lemma my_lemma_2 (p q : Prop) : (p → q) → p → p ∧ q := 
-begin 
+lemma my_lemma_2 (p q : Prop) : (p → q) → p → p ∧ q :=
+begin
     intros h hp,
     (get_local `q >>= define_core `hq),
     /-Look at the goal state here-/
@@ -294,7 +291,7 @@ There are also variants `assertv_core` and `definev_core` which take an addition
 ## Making metavariables directly
 
 You can use `mk_mvar : expr → tactic expr` to make fresh metavariables. The parameter is the type.
-There is no way to directly assign (ie. "fill in") metavariables with a tactic. Instead, you have to assign them by: 
+There is no way to directly assign (ie. "fill in") metavariables with a tactic. Instead, you have to assign them by:
 - setting them as a goal and using tactics which operate on the goal such as `exact` and `apply`
 - or getting them set as a result of unification, which is when a metavariable is set because a matcher wanted (eg) `f ?m` and `f 4` to be equal.
 
@@ -321,7 +318,7 @@ Let's write out all of the fundamental reductions we have in type theory. We wri
 - __β-reduction__ is `(λ x : a, b) c ~~> b[x/c]`
 - __δ-reduction__ is replacing a constant with it's definition.
 - __ζ-reduction__ is reduction of `let` bindings: `let x : a := b in c ~~> c[x/b]`. Perform it on an expression with the `zeta` or `head_zeta` tactic.
-- __η-equivalence__ is the rule that  `(λ x, f x)` can be reduced to `f`. Perform it with the `eta` or `head_eta` tactic. 
+- __η-equivalence__ is the rule that  `(λ x, f x)` can be reduced to `f`. Perform it with the `eta` or `head_eta` tactic.
     You can also use the tactic `head_eta_expand` to do η-reduction backwards. Eg; `f` is converted to `(λ x, f x)`. If `f` isn't a function then it just returns `f`.
 - __ι-reduction__ is reducing recursors on inductive datatypes: for example `nat.rec i r (succ n) ~~> r n (nat.rec i r n)` and `nat.rec i r 0 ~~> i`. Reducing any recursively defined function.
 - __proof-irrelevance__ if `P : Prop` and `a b : P`, then `a` is equivalent to `b`.
@@ -329,7 +326,7 @@ Let's write out all of the fundamental reductions we have in type theory. We wri
 Interestingly, ι-reduction and proof-irrelevance together make definitional equality undecidable. But only cases which we don't really care about are undecidable so it's ok. See section 3.7 of the [Lean Reference Manual](https://leanprover.github.io/reference/lean_reference.pdf).
 
 You can get Lean to do a bit of these
-- 
+-
 
 ### What is WHNF?
 
@@ -413,11 +410,11 @@ The configuration structure is called `apply_cfg` and has the following fields:
 
 `simp` is a tactic written in C++ that applies lots of lemmas tagged with the `simp` attribute. [Kevin Buzzard wrote about this](https://github.com/leanprover/mathlib/blob/master/docs/extras/simp.md).
 
-`rewrite` takes a proof of an equation as an argument and looks around trying to find a subexpression that matches with the LHS of the equation. 
+`rewrite` takes a proof of an equation as an argument and looks around trying to find a subexpression that matches with the LHS of the equation.
 
 [TODO] some questions:
 - Is simp using a measure of term size?
-- What tactics is using simp behind the scenes? 
+- What tactics is using simp behind the scenes?
 - Is simp the thing that expands definitions or does it just apply lemmas tagged with `@[simp]`?
 - Overall , I wonder whether `simp` could in principle be written as something in Lean. Is it just for perf reasons that it's in C++?
 - What is the exact difference with `dsimp`?
