@@ -21,7 +21,7 @@ class choice (P : Type u → Type u → Type u) extends bifunctor P :=
 (left {α β : Type u} (γ : Type u) : P α β → P (α ⊕ γ) (β ⊕ γ))
 (right {α β : Type u} (γ : Type u): P α β → P (γ ⊕ α) (γ ⊕ β))
 class foldable (F : Type u → Type u) extends functor F := (fold {μ} [has_mul μ] [has_one μ] : F μ → μ)
-instance arrow_is_choice : choice (→) := `
+instance arrow_is_choice : choice (→) :=
 { dimap := λ _ _ _ _ f g h, g ∘ h ∘ f
 , left := λ α β γ f g, sum.rec_on g (sum.inl ∘ f) (sum.inr)
 , right := λ α β γ f g, sum.rec_on g (sum.inl) (sum.inr ∘ f)
